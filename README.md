@@ -3,7 +3,7 @@
 A smart web and mobile platform for reporting, managing, analyzing, and resolving community infrastructure problems.
 
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://www.djangoproject.com/)
-[![React](https://img.shields.io/badge/React-18.3-blue.svg)](https://reactjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3-black.svg)](https://nextjs.org/)
 [![Flutter](https://img.shields.io/badge/Flutter-3.2+-blue.svg)](https://flutter.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal.svg)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
@@ -99,7 +99,7 @@ CIRP follows a **microservices architecture** with four main components:
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌──────────────┐    ┌──────────────┐    ┌─────────────┐  │
-│  │   Flutter    │    │    React     │    │   Django    │  │
+│  │   Flutter    │    │   Next.js    │    │   Django    │  │
 │  │  Mobile App  │◄──►│ Web Dashboard│◄──►│  REST API   │  │
 │  │  (Citizen)   │    │  (Officers)  │    │  (Backend)  │  │
 │  └──────────────┘    └──────────────┘    └──────┬──────┘  │
@@ -130,7 +130,7 @@ CIRP follows a **microservices architecture** with four main components:
 | **Backend** | Django 5.2 + DRF | REST API, business logic |
 | **Database** | PostgreSQL 16 + PostGIS | Relational DB with GIS support |
 | **AI Service** | FastAPI + PyTorch | ML inference service |
-| **Frontend** | React 18 + Vite + Tailwind | Admin web dashboard |
+| **Admin Page** | Next.js 16.3 + TanStack Query | Admin web dashboard |
 | **Mobile** | Flutter 3.2+ | Citizen mobile app |
 | **Maps** | Leaflet + OpenStreetMap | Interactive maps |
 
@@ -164,18 +164,29 @@ CIRP/
 │   ├── requirements.txt       # Python dependencies
 │   └── Dockerfile             # Backend Docker image
 │
-├── frontend/                  # React Admin Dashboard
+├── admin_page/               # Next.js Admin Dashboard
 │   ├── src/
+│   │   ├── app/               # Next.js app directory
+│   │   │   ├── (dashboard)/  # Dashboard routes
+│   │   │   ├── login/        # Authentication pages
+│   │   │   └── layout.tsx    # Root layout
+│   │   ├── modules/           # Feature modules
+│   │   │   ├── auth/          # Authentication
+│   │   │   ├── reports/       # Reports management
+│   │   │   ├── analytics/     # Analytics & charts
+│   │   │   ├── map/           # GIS mapping
+│   │   │   ├── tasks/         # Task management
+│   │   │   ├── users/         # User management
+│   │   │   └── shared/        # Shared services
 │   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Page components
-│   │   ├── layout/            # Layout components
-│   │   ├── data/              # Mock data (dev)
-│   │   └── main.jsx           # Entry point
+│   │   └── lib/               # Utilities
 │   ├── public/                # Static assets
 │   ├── package.json           # NPM dependencies
-│   ├── vite.config.js         # Vite configuration
+│   ├── next.config.ts         # Next.js configuration
 │   ├── tailwind.config.js     # Tailwind CSS config
-│   └── Dockerfile             # Frontend Docker image
+│   └── Dockerfile             # Admin page Docker image
+│
+├── frontend_old_backup/      # Old React admin (backup)
 │
 ├── mobile/                    # Flutter Mobile App
 │   ├── lib/
@@ -261,7 +272,7 @@ CIRP/
 
 4. **Access the services**
    - Backend API: http://localhost:8000
-   - Frontend Dashboard: http://localhost:5173
+   - Admin Dashboard: http://localhost:3000
    - AI Service: http://localhost:8001
    - API Documentation: http://localhost:8000/admin
 
@@ -320,11 +331,11 @@ CIRP/
    python manage.py runserver
    ```
 
-### Frontend Setup (React)
+### Admin Page Setup (Next.js)
 
-1. **Navigate to frontend folder**
+1. **Navigate to admin_page folder**
    ```bash
-   cd frontend
+   cd admin_page
    ```
 
 2. **Install dependencies**
@@ -332,14 +343,20 @@ CIRP/
    npm install
    ```
 
-3. **Start development server**
+3. **Configure environment**
+   ```bash
+   # Create .env.local file
+   echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1" > .env.local
+   ```
+
+4. **Start development server**
    ```bash
    npm run dev
    ```
 
-4. **Access dashboard**
+5. **Access dashboard**
    ```
-   http://localhost:5173
+   http://localhost:3000
    ```
 
 ### Mobile Setup (Flutter)
@@ -416,8 +433,8 @@ docker-compose up backend
 # AI service only
 docker-compose up ai-service
 
-# Frontend only
-docker-compose up frontend
+# Admin page only
+docker-compose up admin_page
 ```
 
 ### Database Management
@@ -447,11 +464,13 @@ CIRP was developed by an 8-member team organized into 4 sub-teams:
 - API endpoints and serializers
 
 ### Frontend Team (2 Developers)
-- React admin dashboard with Vite
-- Tailwind CSS styling
-- Interactive pages (Dashboard, Reports, Analytics, Maps, Tasks, etc.)
-- Leaflet map integration
-- Responsive design
+- Next.js admin dashboard with App Router
+- Tailwind CSS v4 styling
+- TanStack Query for data fetching
+- Modular architecture (auth, reports, analytics, map, tasks, users)
+- Better-Fetch API client
+- Type-safe with TypeScript
+- Responsive design with modern UI components
 
 ### Mobile Team (2 Developers)
 - Flutter mobile application
@@ -565,9 +584,9 @@ cd backend
 python manage.py test
 ```
 
-### Frontend Tests
+### Admin Page Tests
 ```bash
-cd frontend
+cd admin_page
 npm run test
 ```
 
