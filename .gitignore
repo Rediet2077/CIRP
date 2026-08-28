@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -22,6 +21,11 @@ wheels/
 venv/
 ENV/
 env/
+
+# Python lib (but not Flutter lib)
+**/venv/lib/
+**/ENV/lib/
+**/env/lib/
 
 # Django
 *.log
