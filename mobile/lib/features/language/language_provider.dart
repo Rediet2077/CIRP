@@ -6,6 +6,9 @@ class LanguageProvider extends ChangeNotifier {
 
   String _languageCode = 'en';
 
+  // Supported languages (Material Design has built-in support)
+  static const List<String> _supportedLanguages = ['en', 'am'];
+
   LanguageProvider() {
     _loadSaved();
   }
@@ -15,6 +18,11 @@ class LanguageProvider extends ChangeNotifier {
   Locale get locale => Locale(_languageCode);
 
   Future<void> setLanguage(String code) async {
+    // Force to English if language not supported
+    if (!_supportedLanguages.contains(code)) {
+      code = 'en';
+    }
+    
     if (_languageCode == code) return;
     _languageCode = code;
     notifyListeners();
@@ -25,9 +33,16 @@ class LanguageProvider extends ChangeNotifier {
   Future<void> _loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_prefKey);
-    if (saved != null && saved != _languageCode) {
+    
+    // Force to English if saved language not supported
+    if (saved != null && _supportedLanguages.contains(saved) && saved != _languageCode) {
       _languageCode = saved;
       notifyListeners();
+    } else if (saved != null && !_supportedLanguages.contains(saved)) {
+      // Reset to English if unsupported language was saved
+      _languageCode = 'en';
+      notifyListeners();
+      await prefs.setString(_prefKey, 'en');
     }
   }
 
@@ -35,10 +50,6 @@ class LanguageProvider extends ChangeNotifier {
     switch (_languageCode) {
       case 'am':
         return 'Amharic';
-      case 'or':
-        return 'Afaan Oromo';
-      case 'ti':
-        return 'Tigrinya';
       default:
         return 'English';
     }
@@ -47,7 +58,7 @@ class LanguageProvider extends ChangeNotifier {
   List<Map<String, String>> get languageOptions => [
         {'code': 'en', 'name': 'English', 'icon': 'EN'},
         {'code': 'am', 'name': 'Amharic', 'icon': 'AM'},
-        {'code': 'or', 'name': 'Afaan Oromo', 'icon': 'OR'},
-        {'code': 'ti', 'name': 'Tigrinya', 'icon': 'TI'},
+        // Oromo and Tigrinya removed - Material Design doesn't support them yet
+        // You can still process reports in these languages on backend
       ];
 }

@@ -43,10 +43,6 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
       department_email: "",
       department_phone: "",
       address: "",
-      representative_first_name: "",
-      representative_last_name: "",
-      representative_email: "",
-      representative_phone: "",
       password: "",
       confirm_password: "",
       agree_terms: true as const,
@@ -65,10 +61,6 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
         department_email: data.department_email,
         department_phone: data.department_phone,
         address: data.address,
-        representative_first_name: data.representative_first_name,
-        representative_last_name: data.representative_last_name,
-        representative_email: data.representative_email,
-        representative_phone: data.representative_phone,
         password: data.password,
       },
       {
@@ -113,7 +105,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
                     <Input
                       id="department_name"
                       type="text"
-                      placeholder="Roads Department"
+                      placeholder="Enter department name"
                       className="text-sm pl-8"
                       {...register("department_name")}
                     />
@@ -129,7 +121,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
                   <Input
                     id="department_code"
                     type="text"
-                    placeholder="ROAD"
+                    placeholder="e.g., ROADS, ELEC, WATER"
                     className="text-sm"
                     {...register("department_code")}
                   />
@@ -182,73 +174,6 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
                     <FieldError errors={[errors.address]} />
                   </Field>
                 </div>
-              </div>
-
-              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                Representative
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Field data-invalid={!!errors.representative_first_name}>
-                    <FieldLabel htmlFor="representative_first_name" className="text-sm font-medium">
-                      First Name
-                    </FieldLabel>
-                    <Input
-                      id="representative_first_name"
-                      type="text"
-                      placeholder="Abebe"
-                      className="text-sm"
-                      {...register("representative_first_name")}
-                    />
-                    <FieldError errors={[errors.representative_first_name]} />
-                  </Field>
-
-                  <Field data-invalid={!!errors.representative_last_name}>
-                    <FieldLabel htmlFor="representative_last_name" className="text-sm font-medium">
-                      Last Name
-                    </FieldLabel>
-                    <Input
-                      id="representative_last_name"
-                      type="text"
-                      placeholder="Kebede"
-                      className="text-sm"
-                      {...register("representative_last_name")}
-                    />
-                    <FieldError errors={[errors.representative_last_name]} />
-                  </Field>
-                </div>
-
-                <Field data-invalid={!!errors.representative_email}>
-                  <FieldLabel htmlFor="representative_email" className="text-sm font-medium">
-                    Representative Email
-                  </FieldLabel>
-                  <div className="relative">
-                    <Input
-                      id="representative_email"
-                      type="email"
-                      placeholder="abebe@example.gov.et"
-                      className="text-sm pl-8"
-                      {...register("representative_email")}
-                    />
-                    <EnvelopeSimpleIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                  <FieldError errors={[errors.representative_email]} />
-                </Field>
-
-                <Field data-invalid={!!errors.representative_phone}>
-                  <FieldLabel htmlFor="representative_phone" className="text-sm font-medium">
-                    Representative Phone
-                  </FieldLabel>
-                  <Input
-                    id="representative_phone"
-                    type="tel"
-                    placeholder="+251911111111"
-                    className="text-sm"
-                    {...register("representative_phone")}
-                  />
-                  <FieldError errors={[errors.representative_phone]} />
-                </Field>
               </div>
 
               <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider pt-2">

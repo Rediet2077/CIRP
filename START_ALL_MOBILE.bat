@@ -3,21 +3,29 @@ echo ========================================
 echo   CIRP - Full System with Mobile App
 echo ========================================
 echo.
+echo Your PC IP: 10.102.4.204
+echo Phone should connect to: http://10.102.4.204:8000
+echo.
 
-echo [1/4] Starting Backend API (Django)...
-start "Backend API" cmd /k "cd backend && venv\Scripts\activate && python manage.py runserver"
-timeout /t 3 /nobreak >nul
+echo [1/5] Starting Backend API (Django) - Network Mode...
+start "Backend API" cmd /k "cd backend && venv\Scripts\activate && python manage.py runserver 0.0.0.0:8000"
+timeout /t 5 /nobreak >nul
 
-echo [2/4] Starting AI Service (FastAPI)...
-start "AI Service" cmd /k "cd ai && uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload"
-timeout /t 3 /nobreak >nul
+echo [2/5] Starting AI Service (FastAPI) - Network Mode...
+start "AI Service" cmd /k "cd ai && python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt && uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload"
+timeout /t 5 /nobreak >nul
 
-echo [3/4] Starting Admin Page (Next.js)...
+echo [3/5] Starting Admin Page (Next.js)...
 start "Admin Page" cmd /k "cd admin_page && npm run dev"
-timeout /t 3 /nobreak >nul
+timeout /t 5 /nobreak >nul
 
-echo [4/4] Starting Mobile App (Flutter Web)...
-start "Mobile App" cmd /k "cd mobile && python -m http.server 8080 --directory build\web"
+echo [4/5] Connecting to Phone via ADB...
+echo Make sure Wireless Debugging is ON on your phone!
+adb connect 10.102.4.206:5555
+timeout /t 2 /nobreak >nul
+
+echo [5/5] Starting Mobile App on Phone (Flutter)...
+start "Mobile App" cmd /k "cd mobile && flutter run"
 timeout /t 3 /nobreak >nul
 
 echo.
@@ -25,27 +33,19 @@ echo ========================================
 echo   All Services Started!
 echo ========================================
 echo.
-echo Backend API:     http://localhost:8000
-echo AI Service:      http://localhost:8001
+echo Backend API:     http://10.102.4.204:8000  (Network Access)
+echo AI Service:      http://10.102.4.204:8001  (Network Access)
 echo Admin Page:      http://localhost:3000
-echo Mobile App:      http://localhost:8080
+echo Mobile App:      Running on your phone
 echo.
-echo New Photo-First Workflow:
-echo  1. 📸 Take Photo (FIRST)
-echo  2. 📍 Set Location
-echo  3. 📝 Fill Details (AI suggests category)
-echo  4. ✅ Review and Submit
+echo Phone Connected: Check your phone screen!
 echo.
-echo Features Active:
-echo  ✅ Photo-first workflow
-echo  ✅ All photos accepted (no quality check)
-echo  ✅ AI classification (90%+ accuracy)
-echo  ✅ Duplicate detection (80%% threshold)
-echo  ✅ Message: "This report was reported by another user"
+echo TIPS FOR MOBILE APP:
+echo  - Press 'r' in Mobile App terminal for hot reload
+echo  - Press 'R' for hot restart
+echo  - Press 'q' to quit mobile app
 echo.
-echo Opening mobile app...
-timeout /t 3 /nobreak >nul
-start http://localhost:8080
+echo Services running in separate windows.
+echo Close each window to stop individual services.
 echo.
-echo Press any key to exit...
-pause >nul
+pause

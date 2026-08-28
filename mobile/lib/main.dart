@@ -30,8 +30,8 @@ class CirpApp extends StatelessWidget {
       supportedLocales: const [
         Locale('en'),
         Locale('am'),
-        Locale('or'),
-        Locale('ti'),
+        // Locale('or'), // Removed - not supported by Material
+        // Locale('ti'), // Removed - not supported by Material
       ],
       localizationsDelegates: const [
         AppLocalizations.delegate,
