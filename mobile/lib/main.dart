@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:cirp/core/routes/app_routes.dart';
-import 'package:cirp/core/theme/app_theme.dart';
-import 'package:cirp/features/auth/screens/login_screen.dart';
-import 'package:cirp/features/language/language_provider.dart';
-import 'package:cirp/generated/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/theme/app_theme.dart';
+import 'core/routes/app_routes.dart';
+import 'features/splash/splash_screen.dart';
+import 'features/language/language_provider.dart';
+import 'generated/app_localizations.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
-      child: const CirpApp(),
-    ),
-  );
+  runApp(const CirpApp());
 }
 
 class CirpApp extends StatelessWidget {
@@ -21,35 +16,32 @@ class CirpApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = context.watch<LanguageProvider>();
-    return MaterialApp(
-      title: 'CIRP',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      locale: langProvider.locale,
-      supportedLocales: const [
-        Locale('en'),
-        Locale('am'),
-        // Locale('or'), // Removed - not supported by Material
-        // Locale('ti'), // Removed - not supported by Material
-      ],
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      localeResolutionCallback: (locale, supportedLocales) {
-        if (locale == null) return const Locale('en');
-        for (final supported in supportedLocales) {
-          if (supported.languageCode == locale.languageCode) {
-            return supported;
-          }
-        }
-        return const Locale('en');
-      },
-      routes: AppRoutes.routes,
-      home: const LoginScreen(),
+    return ChangeNotifierProvider(
+      create: (_) => LanguageProvider(),
+      child: Consumer<LanguageProvider>(
+        builder: (context, langProvider, _) {
+          return MaterialApp(
+            title: 'CIRP - Community Issue Reporting Platform',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            locale: Locale(langProvider.languageCode),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('am'),
+              Locale('om'),
+              Locale('ti'),
+            ],
+            routes: AppRoutes.routes,
+            home: const SplashScreen(),
+          );
+        },
+      ),
     );
   }
 }

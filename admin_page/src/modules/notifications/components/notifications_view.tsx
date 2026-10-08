@@ -37,7 +37,7 @@ export function NotificationsView() {
 
   if (isLoading && !localList) {
     return (
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 w-full">
+      <div className="flex flex-1 flex-col gap-6 p-6 md:p-8 w-full">
         <div className="animate-pulse flex flex-col gap-4">
           <div className="h-10 bg-muted/30 rounded w-1/3" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -54,7 +54,7 @@ export function NotificationsView() {
   const unreadCount = notificationList.filter((n) => !n.is_read).length;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 w-full">
+    <div className="flex flex-1 flex-col gap-6 p-6 md:p-8 w-full">
       <NotificationsHeader
         unreadCount={unreadCount}
         totalCount={notificationList.length}

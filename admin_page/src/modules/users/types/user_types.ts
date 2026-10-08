@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-const UserRoleSchema = z.enum(["SYSTEM_ADMIN", "DEPARTMENT_ADMIN"]);
+const UserRoleSchema = z.enum([
+  "SUPER_ADMIN",
+  "SYSTEM_ADMIN",
+  "DEPARTMENT_ADMIN",
+  "ROAD_ADMIN",
+  "WATER_ADMIN",
+  "ELECTRICITY_ADMIN",
+  "DRAINAGE_ADMIN",
+  "WASTE_ADMIN",
+  "STREETLIGHT_ADMIN",
+  "PUBLIC_FACILITIES_ADMIN",
+]);
 export type SystemUserRole = z.infer<typeof UserRoleSchema>;
 
 const UserStatusSchema = z.enum(["ACTIVE", "INACTIVE", "PENDING"]);

@@ -25,11 +25,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "duplicate_detec
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes.classify     import router as classify_router
-from api.routes.duplicate    import router as duplicate_router
-from api.routes.multilingual import router as multilingual_router
-from api.routes.quality      import router as quality_router
-from api.routes.auto_fill    import router as auto_fill_router
+from routes.classify     import router as classify_router
+from routes.duplicate    import router as duplicate_router
+from routes.multilingual import router as multilingual_router
+from routes.quality      import router as quality_router
+from routes.auto_fill    import router as auto_fill_router
 
 # ── Create app ─────────────────────────────────────────────
 app = FastAPI(

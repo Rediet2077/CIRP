@@ -53,7 +53,7 @@ export function DashboardView() {
   const currentDept = deptList.find((d) => d.id === effectiveDept);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 w-full">
+    <div className="flex flex-1 flex-col gap-6 p-6 md:p-8 w-full">
       <DashboardHeader
         currentUserRole={currentUserRole}
         departmentName={currentDept?.name}

@@ -4,8 +4,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
 from utils.pagination import StandardResultsSetPagination
 from rest_framework.throttling import ScopedRateThrottle
+import random
+import string
+
+from .models import PasswordResetOTP
 
 from .serializers import (
     UserSerializer,
@@ -14,6 +21,9 @@ from .serializers import (
     UserAdminUpdateSerializer,
     ChangePasswordSerializer,
     UserStatusUpdateSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifyOTPSerializer,
+    PasswordResetConfirmSerializer,
 )
 
 from utils.responses import success_response, error_response
@@ -74,8 +84,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     throttle_scope = 'auth'
     
     def post(self, request, *args, **kwargs):
+        print(f"DEBUG: Login request data: {request.data}")
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            print(f"DEBUG: Validation error: {e}")
+            print(f"DEBUG: Serializer errors: {serializer.errors}")
+            raise
 
         # Record audit log for login
         user = serializer.user
@@ -286,3 +302,163 @@ class UserStatusUpdateView(generics.UpdateAPIView):
             data=UserSerializer(instance).data,
             message="User account status updated successfully."
         )
+
+
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    """
+    Public endpoint to request password reset. Sends OTP to email.
+    """
+    serializer_class = PasswordResetRequestSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+
+        # Generate 6-digit OTP
+        otp = ''.join(random.choices(string.digits, k=6))
+
+        # Save OTP to database
+        PasswordResetOTP.objects.create(
+            email=email,
+            otp=otp
+        )
+
+        # Send OTP via email
+        try:
+            send_mail(
+                subject='CIRP - Password Reset OTP',
+                message=f'Your password reset OTP is: {otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request a password reset, please ignore this email.',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@cirp.com'),
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            # Record audit log
+            record_audit_log(
+                action="PASSWORD_RESET_REQUESTED",
+                entity_type="User",
+                entity_id=user.id,
+                actor=user,
+                request=request,
+                reason=f"Password reset OTP sent to {email}."
+            )
+
+            return success_response(
+                message=f"Password reset OTP has been sent to {email}."
+            )
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+            # For development, return OTP in response
+            return success_response(
+                message=f"OTP generated (email not configured): {otp}",
+                data={"otp": otp, "email": email}
+            )
+
+
+class PasswordResetVerifyOTPView(generics.GenericAPIView):
+    """
+    Public endpoint to verify OTP code without resetting password.
+    """
+    serializer_class = PasswordResetVerifyOTPSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+
+        # Find valid OTP
+        try:
+            otp_record = PasswordResetOTP.objects.filter(
+                email=email,
+                otp=otp,
+                is_used=False
+            ).latest('created_at')
+
+            if not otp_record.is_valid():
+                return error_response(
+                    message="OTP has expired. Please request a new one.",
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            return success_response(
+                message="OTP verified successfully. You can now reset your password."
+            )
+
+        except PasswordResetOTP.DoesNotExist:
+            return error_response(
+                message="Invalid OTP code.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    """
+    Public endpoint to reset password using OTP.
+    """
+    serializer_class = PasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+        new_password = serializer.validated_data['new_password']
+
+        # Find valid OTP
+        try:
+            otp_record = PasswordResetOTP.objects.filter(
+                email=email,
+                otp=otp,
+                is_used=False
+            ).latest('created_at')
+
+            if not otp_record.is_valid():
+                return error_response(
+                    message="OTP has expired. Please request a new one.",
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Mark OTP as used
+            otp_record.is_used = True
+            otp_record.save()
+
+            # Update user password
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+
+            # Record audit log
+            record_audit_log(
+                action="PASSWORD_RESET_COMPLETED",
+                entity_type="User",
+                entity_id=user.id,
+                actor=user,
+                request=request,
+                reason=f"Password successfully reset via OTP for {email}."
+            )
+
+            return success_response(
+                message="Password has been reset successfully. You can now login with your new password."
+            )
+
+        except PasswordResetOTP.DoesNotExist:
+            return error_response(
+                message="Invalid OTP code.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )

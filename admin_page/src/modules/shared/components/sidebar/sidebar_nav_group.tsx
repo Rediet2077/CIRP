@@ -9,26 +9,25 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuBadge,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/ui/sidebar";
 import { Badge } from "@/ui/badge";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { SidebarNavGroupConfig, SidebarNavItem } from "./sidebar_navigation_config";
+import { cn } from "@/lib/utils";
 
 export function SidebarNavGroup({ group }: { group: SidebarNavGroupConfig }) {
   const pathname = usePathname();
 
   return (
-    <SidebarGroup className="py-2">
-      <SidebarGroupLabel className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-2 mb-1">
+    <SidebarGroup>
+      <SidebarGroupLabel className="px-4 mb-2">
         {group.label}
       </SidebarGroupLabel>
       <SidebarGroupContent>
-        <SidebarMenu className="gap-1">
+        <SidebarMenu>
           {group.items.map((item) => (
             <SidebarNavEntry key={item.title} item={item} pathname={pathname} />
           ))}
@@ -61,32 +60,30 @@ function SidebarNavEntry({
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        render={<Link href={item.url} />}
-        isActive={isActive}
-        className={`gap-3 cursor-pointer w-full flex items-center px-2.5 py-2.5 rounded-lg transition-colors ${
-          isActive
-            ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs"
-            : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 font-medium"
-        }`}
+      <Link 
+        href={item.url}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 16px' }}
+        className={cn(
+          "rounded-lg text-sm font-medium transition-colors",
+          isActive 
+            ? "bg-primary/10 text-primary font-semibold" 
+            : "text-foreground hover:bg-accent"
+        )}
       >
         <IconComponent
           weight={isActive ? "fill" : "bold"}
-          className={`size-4 shrink-0 ${
-            isActive ? "text-primary" : "text-muted-foreground"
-          }`}
+          size={20}
+          style={{ flexShrink: 0 }}
         />
-        <span className={`text-sm ${isActive ? "font-semibold" : "font-medium"}`}>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.title}
         </span>
-      </SidebarMenuButton>
+      </Link>
       {Boolean(item.badgeCount && item.badgeCount > 0) && (
         <SidebarMenuBadge>
           <Badge
             variant={item.badgeVariant || "outline"}
-            className={`text-xs px-1.5 py-0.5 min-w-4 flex items-center justify-center font-normal ${
-              item.pulse ? "animate-pulse" : ""
-            }`}
+            className="text-xs"
           >
             {item.badgeCount}
           </Badge>
@@ -110,25 +107,33 @@ function SidebarSubmenuEntry({
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
+      <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="gap-3 justify-between cursor-pointer px-2.5 py-2.5"
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 16px', textAlign: 'left' }}
+        className={cn(
+          "rounded-lg text-sm font-medium transition-colors",
+          isSubActive 
+            ? "bg-accent text-accent-foreground" 
+            : "text-foreground hover:bg-accent"
+        )}
       >
-        <div className="flex items-center gap-3">
-          <IconComponent
-            weight={isSubActive ? "fill" : "bold"}
-            className={`size-4 ${isSubActive ? "text-primary" : "text-muted-foreground"}`}
-          />
-          <span className={`text-sm ${isSubActive ? "font-semibold" : "font-medium"}`}>
-            {item.title}
-          </span>
-        </div>
-        <CaretDownIcon
-          className={`size-3.5 text-muted-foreground transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+        <IconComponent
+          weight={isSubActive ? "fill" : "bold"}
+          size={20}
+          style={{ flexShrink: 0 }}
         />
-      </SidebarMenuButton>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.title}
+        </span>
+        <CaretDownIcon
+          size={16}
+          style={{ flexShrink: 0 }}
+          className={cn(
+            "transition-transform duration-200",
+            isOpen && "rotate-180"
+          )}
+        />
+      </button>
 
       {isOpen && item.subItems && (
         <SidebarMenuSub>
@@ -137,16 +142,21 @@ function SidebarSubmenuEntry({
             const isChildActive = pathname === sub.url;
             return (
               <SidebarMenuSubItem key={sub.title}>
-                <SidebarMenuSubButton
-                  render={<Link href={sub.url} />}
-                  isActive={isChildActive}
-                  className={`text-sm cursor-pointer w-full ${
-                    isChildActive ? "font-semibold text-primary" : "font-normal text-muted-foreground"
-                  }`}
+                <Link
+                  href={sub.url}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '8px 16px 8px 48px' }}
+                  className={cn(
+                    "rounded-lg text-sm transition-colors",
+                    isChildActive 
+                      ? "bg-primary/10 text-primary font-semibold" 
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
                 >
-                  <SubIcon className="size-4 mr-1" />
-                  <span>{sub.title}</span>
-                </SidebarMenuSubButton>
+                  <SubIcon size={16} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sub.title}
+                  </span>
+                </Link>
               </SidebarMenuSubItem>
             );
           })}

@@ -3,13 +3,13 @@ class ApiConstants {
   // Base URLs
   static const String _localBaseUrl = 'http://localhost:8000';
   static const String _androidEmulatorBaseUrl = 'http://10.0.2.2:8000';
-  static const String _physicalDeviceBaseUrl = 'http://10.102.4.204:8000'; // Your PC IP
+  static const String _physicalDeviceBaseUrl = 'http://192.168.0.109:8000'; // Your PC IP
   
   // Change this based on your device
   // Use _localBaseUrl for iOS Simulator, Chrome, Windows, macOS
   // Use _androidEmulatorBaseUrl for Android Emulator
   // Use _physicalDeviceBaseUrl for physical devices (phone)
-  static const String baseUrl = _physicalDeviceBaseUrl; // Changed for physical device
+  static const String baseUrl = _localBaseUrl; // Using localhost with USB adb reverse
   
   // API Version
   static const String apiVersion = '/api/v1';
@@ -45,7 +45,7 @@ class ApiConstants {
   static String get assetsUrl => '$apiBaseUrl/assets/';
   
   // AI Service
-  static const String aiServiceBaseUrl = 'http://10.102.4.204:8001'; // Your PC IP
+  static const String aiServiceBaseUrl = 'http://localhost:8001'; // Using localhost with USB adb reverse
   static String get imageClassificationUrl => '$aiServiceBaseUrl/classify/';
   static String get duplicateDetectionUrl => '$aiServiceBaseUrl/detect-duplicate/';
   

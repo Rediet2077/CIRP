@@ -22,7 +22,7 @@ export function DepartmentsView() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 w-full">
+      <div className="flex flex-1 flex-col gap-6 p-6 md:p-8 w-full">
         <div className="animate-pulse flex flex-col gap-4">
           <div className="h-10 bg-muted/30 rounded w-1/3" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -60,57 +60,59 @@ export function DepartmentsView() {
         {deptList.map((dept) => (
           <Card
             key={dept.id}
-            className="hover:border-primary/50 transition-colors cursor-pointer"
+            className="hover:border-primary/50 transition-colors cursor-pointer flex flex-col"
             onClick={() => openProfileDialog(dept.id)}
           >
-              <CardHeader>
-                <CardTitle>{dept.name}</CardTitle>
-                <CardDescription className="line-clamp-2 leading-relaxed">
-                  {dept.description}
-                </CardDescription>
-                <CardAction>
-                  <Badge variant="outline" className="text-sm font-normal">
-                    {dept.code}
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-
-              <CardContent className="flex flex-col gap-4 flex-1">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase block mb-1">
-                      Assets In DB
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {dept.total_assets.toLocaleString()}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase block mb-1">
-                      Resolution Rate
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {dept.resolution_rate_percent}%
-                    </span>
-                  </div>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">{dept.name}</CardTitle>
+                  <CardDescription className="line-clamp-2 leading-relaxed mt-1.5">
+                    {dept.description}
+                  </CardDescription>
                 </div>
+                <Badge variant="outline" className="text-xs font-normal ml-2">
+                  {dept.code}
+                </Badge>
+              </div>
+            </CardHeader>
 
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>
-                    Active Tasks: <span className="text-foreground font-medium">{dept.active_tasks}</span>
+            <CardContent className="flex-1">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase block mb-1">
+                    Assets In DB
                   </span>
-                  {dept.overdue_tasks > 0 ? (
-                    <span className="font-medium text-destructive">{dept.overdue_tasks} Overdue</span>
-                  ) : (
-                    <span className="text-foreground font-normal">0 Overdue</span>
-                  )}
+                  <span className="text-xl font-semibold text-foreground">
+                    {dept.total_assets.toLocaleString()}
+                  </span>
                 </div>
-              </CardContent>
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase block mb-1">
+                    Resolution Rate
+                  </span>
+                  <span className="text-xl font-semibold text-foreground">
+                    {dept.resolution_rate_percent}%
+                  </span>
+                </div>
+              </div>
 
-            <CardFooter className="p-0">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Active Tasks: <span className="text-foreground font-medium">{dept.active_tasks}</span>
+                </span>
+                {dept.overdue_tasks > 0 ? (
+                  <span className="font-medium text-destructive">{dept.overdue_tasks} Overdue</span>
+                ) : (
+                  <span className="text-muted-foreground">0 Overdue</span>
+                )}
+              </div>
+            </CardContent>
+
+            <CardFooter className="mt-auto border-t">
               <Button
                 variant="ghost"
-                className="w-full h-11 rounded-none text-sm font-normal text-muted-foreground hover:text-foreground hover:bg-transparent"
+                className="w-full text-sm font-normal text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   openProfileDialog(dept.id);

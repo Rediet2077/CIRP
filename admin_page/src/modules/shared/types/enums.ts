@@ -12,7 +12,17 @@ export type AssetCondition = "EXCELLENT" | "GOOD" | "FAIR" | "POOR" | "CRITICAL"
 
 export type ReportPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
-export type UserRole = "SYSTEM_ADMIN" | "DEPARTMENT_ADMIN";
+export type UserRole = 
+  | "SUPER_ADMIN"
+  | "ROAD_ADMIN" 
+  | "WATER_ADMIN"
+  | "ELECTRICITY_ADMIN"
+  | "DRAINAGE_ADMIN"
+  | "WASTE_ADMIN"
+  | "STREETLIGHT_ADMIN"
+  | "PUBLIC_FACILITIES_ADMIN"
+  | "SYSTEM_ADMIN"  // Legacy alias for SUPER_ADMIN
+  | "DEPARTMENT_ADMIN";  // Generic department admin
 
 type DepartmentStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 

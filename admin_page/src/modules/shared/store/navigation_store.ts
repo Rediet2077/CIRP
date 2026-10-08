@@ -18,13 +18,16 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set) => ({
   activeTab: "dashboard",
   selectedDepartmentFilter: "all",
-  currentUserRole: "SYSTEM_ADMIN",
+  currentUserRole: "SYSTEM_ADMIN", // Default fallback
   activeOfficerDepartmentId: "",
   searchQuery: "",
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSelectedDepartmentFilter: (deptId) => set({ selectedDepartmentFilter: deptId }),
-  setCurrentUserRole: (role) => set({ currentUserRole: role }),
+  setCurrentUserRole: (role) => {
+    console.log('🔄 Store: Setting currentUserRole to:', role);
+    set({ currentUserRole: role });
+  },
   setActiveOfficerDepartmentId: (deptId) => set({ activeOfficerDepartmentId: deptId }),
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));

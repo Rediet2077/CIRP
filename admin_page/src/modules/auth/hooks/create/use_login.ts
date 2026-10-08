@@ -28,9 +28,32 @@ export function useLogin() {
     mutationFn: (input: LoginInput) => loginUser(input),
     onSuccess: (data) => {
       const role = data.user.role;
+      
+      console.log('🔑 Login Success:', {
+        email: data.user.email,
+        role: role,
+        department: data.user.department?.name
+      });
 
-      if (role === "SYSTEM_ADMIN" || role === "DEPARTMENT_ADMIN") {
+      // Set role for all admin types
+      const adminRoles = [
+        "SUPER_ADMIN",
+        "SYSTEM_ADMIN",
+        "DEPARTMENT_ADMIN",
+        "ROAD_ADMIN",
+        "WATER_ADMIN",
+        "ELECTRICITY_ADMIN",
+        "DRAINAGE_ADMIN",
+        "WASTE_ADMIN",
+        "STREETLIGHT_ADMIN",
+        "PUBLIC_FACILITIES_ADMIN",
+      ];
+
+      if (adminRoles.includes(role)) {
+        console.log('✅ Role is valid admin role, setting to store');
         setCurrentUserRole(role);
+      } else {
+        console.warn('⚠️ Role not in admin roles list:', role);
       }
 
       if (data.user.department) {
@@ -41,9 +64,12 @@ export function useLogin() {
       setAuthCookie("cirp_token", data.access);
       setAuthCookie("cirp_role", role);
 
+      console.log('💾 Saving to localStorage:', data);
       queryClient.setQueryData(AUTH_SESSION_QUERY_KEY, data);
       localStorageService.setItem("authSession", data);
       queryClient.invalidateQueries({ queryKey: ["users", "list"] });
+      
+      console.log('🚀 Redirecting to dashboard');
       router.push("/dashboard");
     },
   });

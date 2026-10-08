@@ -82,8 +82,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom JWT serializer to include user details in the login response.
+    Accepts 'email' and 'password' instead of 'username' and 'password'.
     """
+    username_field = User.USERNAME_FIELD  # This tells it to use 'email'
+    
     def validate(self, attrs):
+        # The parent class expects 'username' but we have 'email'
+        # Since USERNAME_FIELD is 'email', this should work
         data = super().validate(attrs)
         data['user'] = {
             'id': str(self.user.id),
@@ -132,3 +137,54 @@ class UserStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['is_active', 'is_verified']
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    Serializer for initiating password reset by email (sends OTP).
+    """
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No account found with this email address.")
+        return value
+
+
+class PasswordResetVerifyOTPSerializer(serializers.Serializer):
+    """
+    Serializer for verifying OTP code.
+    """
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        try:
+            User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No account found with this email address.")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Serializer for confirming password reset with OTP and new password.
+    """
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, max_length=6, min_length=6)
+    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password])
+    confirm_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_email(self, value):
+        try:
+            User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No account found with this email address.")
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs

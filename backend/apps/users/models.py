@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.utils import timezone
+from datetime import timedelta
 from utils.enums import UserRole
 
 
@@ -37,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     # Role ENUM from shared utils
     role = models.CharField(
-        max_length=20, 
+        max_length=30, 
         choices=UserRole.choices, 
         default=UserRole.CITIZEN
     )
@@ -61,3 +63,31 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email} ({self.get_role_display()})"
+
+
+class PasswordResetOTP(models.Model):
+    """
+    Model to store OTPs for password reset requests.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(max_length=255)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            # OTP expires in 10 minutes
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+    
+    def is_valid(self):
+        """Check if OTP is still valid (not expired and not used)"""
+        return not self.is_used and timezone.now() < self.expires_at
+    
+    def __str__(self):
+        return f"OTP for {self.email} - {self.otp}"

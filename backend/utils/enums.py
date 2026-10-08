@@ -3,8 +3,17 @@ from django.db import models
 
 class UserRole(models.TextChoices):
     CITIZEN = 'CITIZEN', 'Citizen'
+    SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
+    ROAD_ADMIN = 'ROAD_ADMIN', 'Road Admin'
+    WATER_ADMIN = 'WATER_ADMIN', 'Water Admin'
+    ELECTRICITY_ADMIN = 'ELECTRICITY_ADMIN', 'Electricity Admin'
+    DRAINAGE_ADMIN = 'DRAINAGE_ADMIN', 'Drainage Admin'
+    WASTE_ADMIN = 'WASTE_ADMIN', 'Waste Management Admin'
+    STREETLIGHT_ADMIN = 'STREETLIGHT_ADMIN', 'Street Lighting Admin'
+    PUBLIC_FACILITIES_ADMIN = 'PUBLIC_FACILITIES_ADMIN', 'Public Facilities Admin'
+    # Legacy role for backward compatibility
     DEPARTMENT_ADMIN = 'DEPARTMENT_ADMIN', 'Department Admin'
-    SYSTEM_ADMIN = 'SYSTEM_ADMIN', 'System Admin'
+    SYSTEM_ADMIN = 'SYSTEM_ADMIN', 'System Admin'  # Alias for SUPER_ADMIN
 
 
 class ReportPriority(models.TextChoices):

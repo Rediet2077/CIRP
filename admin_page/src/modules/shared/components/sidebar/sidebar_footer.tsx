@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SidebarFooter } from "@/ui/sidebar";
 import {
@@ -14,44 +14,53 @@ import { CaretUpDownIcon, SignOutIcon } from "@phosphor-icons/react";
 import { useNavigationStore } from "../../store/navigation_store";
 import { useDepartmentList } from "@/modules/departments/hooks/list/use_department_list";
 import { UserProfileHeader } from "./user_footer/user_profile_header";
-import { UserRoleSwitcher } from "./user_footer/user_role_switcher";
 import { UserThemeMenu } from "./user_footer/user_theme_menu";
+import { localStorageService } from "../../services/local_storage";
+import { clearAuthCookies } from "@/modules/auth/hooks/create/use_login";
+
+interface AuthSession {
+  user: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    role: string;
+    department?: {
+      id: string;
+      name: string;
+    };
+  };
+}
 
 export function SidebarUserFooter() {
-  const {
-    currentUserRole,
-    setCurrentUserRole,
-    selectedDepartmentFilter,
-    activeOfficerDepartmentId,
-  } = useNavigationStore();
+  const { currentUserRole } = useNavigationStore();
+  const [userInfo, setUserInfo] = useState<AuthSession['user'] | null>(null);
 
-  const effectiveDept =
-    currentUserRole === "DEPARTMENT_ADMIN"
-      ? activeOfficerDepartmentId
-      : selectedDepartmentFilter;
+  useEffect(() => {
+    const session = localStorageService.getItem<AuthSession>("authSession");
+    if (session?.user) {
+      setUserInfo(session.user);
+    }
+  }, []);
 
   const { data: departments } = useDepartmentList();
   const deptList = departments || [];
-  const currentDeptObj = deptList.find((d) => d.id === effectiveDept);
 
-  const userName =
-    currentUserRole === "SYSTEM_ADMIN"
-      ? "Eng. Dawit Tadesse"
-      : "Department Officer";
+  const userName = userInfo 
+    ? `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() || userInfo.email
+    : "User";
 
-  const userTitle =
-    currentUserRole === "SYSTEM_ADMIN"
-      ? "System Administrator"
-      : currentDeptObj?.name || "Operations Lead";
+  const userTitle = currentUserRole === "SUPER_ADMIN" || currentUserRole === "SYSTEM_ADMIN"
+    ? "System Administrator"
+    : userInfo?.department?.name || "Department Admin";
 
-  const userEmail =
-    currentUserRole === "SYSTEM_ADMIN"
-      ? "dawit.tadesse@cirp.gov.et"
-      : "officer@cirp.gov.et";
+  const userEmail = userInfo?.email || "user@cirp.com";
 
   const router = useRouter();
 
   const handleLogout = () => {
+    localStorageService.removeItem("authSession");
+    clearAuthCookies();
     router.push("/login");
   };
 
@@ -61,7 +70,7 @@ export function SidebarUserFooter() {
         <DropdownMenuTrigger className="flex w-full items-center justify-between gap-2.5 rounded-lg p-2 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-full bg-secondary font-medium text-foreground text-sm border border-border">
-              {currentUserRole === "SYSTEM_ADMIN" ? "SA" : "DO"}
+              {userName.substring(0, 2).toUpperCase()}
             </div>
             <div className="flex flex-col leading-tight min-w-0">
               <span className="font-semibold text-sidebar-foreground text-sm truncate">
@@ -87,14 +96,6 @@ export function SidebarUserFooter() {
             userName={userName}
             userEmail={userEmail}
             userTitle={userTitle}
-          />
-
-          <DropdownMenuSeparator className="my-1.5" />
-
-          {/* Extracted Account Role Switcher Subcomponent */}
-          <UserRoleSwitcher
-            currentUserRole={currentUserRole}
-            setCurrentUserRole={setCurrentUserRole}
           />
 
           <DropdownMenuSeparator className="my-1.5" />
