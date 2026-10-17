@@ -108,12 +108,16 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ClipPath(
         clipper: HeaderClipper(),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 50, 20, 50),
-          decoration: const BoxDecoration(
+          padding: const EdgeInsets.fromLTRB(20, 50, 20, 60),
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF2E7D32),
+                const Color(0xFF388E3C),
+                const Color(0xFF43A047),
+              ],
             ),
           ),
           child: Row(
@@ -203,14 +207,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      transform: Matrix4.translationValues(0, -30, 0), // Move up to overlap with curved header
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 24),
-      decoration: const BoxDecoration(
+      transform: Matrix4.translationValues(0, -35, 0), // Overlap with header more
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(35),
+          topRight: Radius.circular(35),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,20 +579,44 @@ class _IssueCard extends StatelessWidget {
 }
 
 
-// Custom clipper for curved header bottom
+// Custom clipper for modern wave header bottom
 class HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 30); // Left side
     
-    // Create a smooth bezier curve across the bottom
+    // Start at top left
+    path.lineTo(0, size.height - 50);
+    
+    // Create multiple smooth waves for a modern look
+    final firstCurveStartPoint = Offset(0, size.height - 50);
+    final firstCurveEndPoint = Offset(size.width * 0.25, size.height - 35);
     path.quadraticBezierTo(
-      size.width / 2, size.height + 10, // Control point in the middle, slightly lower
-      size.width, size.height - 30, // End point at right side
+      firstCurveStartPoint.dx + (firstCurveEndPoint.dx - firstCurveStartPoint.dx) / 2,
+      firstCurveStartPoint.dy - 10,
+      firstCurveEndPoint.dx,
+      firstCurveEndPoint.dy,
     );
     
-    path.lineTo(size.width, 0); // Right side up
+    final secondCurveStartPoint = firstCurveEndPoint;
+    final secondCurveEndPoint = Offset(size.width * 0.75, size.height - 35);
+    path.quadraticBezierTo(
+      secondCurveStartPoint.dx + (secondCurveEndPoint.dx - secondCurveStartPoint.dx) / 2,
+      secondCurveStartPoint.dy + 20,
+      secondCurveEndPoint.dx,
+      secondCurveEndPoint.dy,
+    );
+    
+    final thirdCurveStartPoint = secondCurveEndPoint;
+    final thirdCurveEndPoint = Offset(size.width, size.height - 50);
+    path.quadraticBezierTo(
+      thirdCurveStartPoint.dx + (thirdCurveEndPoint.dx - thirdCurveStartPoint.dx) / 2,
+      thirdCurveStartPoint.dy - 10,
+      thirdCurveEndPoint.dx,
+      thirdCurveEndPoint.dy,
+    );
+    
+    path.lineTo(size.width, 0);
     path.close();
     
     return path;
