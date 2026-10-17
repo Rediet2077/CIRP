@@ -6,6 +6,7 @@ import 'core/routes/app_routes.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/language/language_provider.dart';
 import 'generated/app_localizations.dart';
+import 'core/localization/fallback_material_localizations.dart';
 
 void main() {
   runApp(const CirpApp());
@@ -27,14 +28,14 @@ class CirpApp extends StatelessWidget {
             locale: Locale(langProvider.languageCode),
             localizationsDelegates: const [
               AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
+              FallbackMaterialLocalizationsDelegate(),
+              FallbackCupertinoLocalizationsDelegate(),
+              FallbackWidgetsLocalizationsDelegate(),
             ],
             supportedLocales: const [
               Locale('en'),
               Locale('am'),
-              Locale('om'),
+              Locale('or'),
               Locale('ti'),
             ],
             routes: AppRoutes.routes,

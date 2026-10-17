@@ -1,7 +1,7 @@
 /// API Configuration for CIRP Backend
 class ApiConstants {
   // Base URLs
-  static const String _localBaseUrl = 'http://localhost:8000';
+  static const String _localBaseUrl = 'http://localhost:43213';
   static const String _androidEmulatorBaseUrl = 'http://10.0.2.2:8000';
   static const String _physicalDeviceBaseUrl = 'http://192.168.0.109:8000'; // Your PC IP
   
