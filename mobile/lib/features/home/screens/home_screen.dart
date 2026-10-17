@@ -105,101 +105,94 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return SliverToBoxAdapter(
-      child: ClipPath(
-        clipper: HeaderClipper(),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 50, 20, 60),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF2E7D32),
-                const Color(0xFF388E3C),
-                const Color(0xFF43A047),
-              ],
-            ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 50, 20, 40),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Hello, $_userName 👋',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      "Let's make our community\nbetter together",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white, size: 26),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                  Stack(
+                  Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
-                        onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      if (_unreadNotifications > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                            child: Text(
-                              _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                      Expanded(
+                        child: Text(
+                          'Hello, $_userName 👋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
                           ),
                         ),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "Let's make our community\nbetter together",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white, size: 26),
+                  onPressed: () {},
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 12),
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    if (_unreadNotifications > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -207,21 +200,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      transform: Matrix4.translationValues(0, -35, 0), // Overlap with header more
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 24),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(35),
-          topRight: Radius.circular(35),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,52 +561,4 @@ class _IssueCard extends StatelessWidget {
     if (s.contains('rejected')) return 'Rejected';
     return 'Pending';
   }
-}
-
-
-// Custom clipper for modern wave header bottom
-class HeaderClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    
-    // Start at top left
-    path.lineTo(0, size.height - 50);
-    
-    // Create multiple smooth waves for a modern look
-    final firstCurveStartPoint = Offset(0, size.height - 50);
-    final firstCurveEndPoint = Offset(size.width * 0.25, size.height - 35);
-    path.quadraticBezierTo(
-      firstCurveStartPoint.dx + (firstCurveEndPoint.dx - firstCurveStartPoint.dx) / 2,
-      firstCurveStartPoint.dy - 10,
-      firstCurveEndPoint.dx,
-      firstCurveEndPoint.dy,
-    );
-    
-    final secondCurveStartPoint = firstCurveEndPoint;
-    final secondCurveEndPoint = Offset(size.width * 0.75, size.height - 35);
-    path.quadraticBezierTo(
-      secondCurveStartPoint.dx + (secondCurveEndPoint.dx - secondCurveStartPoint.dx) / 2,
-      secondCurveStartPoint.dy + 20,
-      secondCurveEndPoint.dx,
-      secondCurveEndPoint.dy,
-    );
-    
-    final thirdCurveStartPoint = secondCurveEndPoint;
-    final thirdCurveEndPoint = Offset(size.width, size.height - 50);
-    path.quadraticBezierTo(
-      thirdCurveStartPoint.dx + (thirdCurveEndPoint.dx - thirdCurveStartPoint.dx) / 2,
-      thirdCurveStartPoint.dy - 10,
-      thirdCurveEndPoint.dx,
-      thirdCurveEndPoint.dy,
-    );
-    
-    path.lineTo(size.width, 0);
-    path.close();
-    
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
