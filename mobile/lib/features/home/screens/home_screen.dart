@@ -203,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      transform: Matrix4.translationValues(0, -30, 0), // Move up to overlap with curved header
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -573,25 +573,15 @@ class HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.lineTo(0, size.height - 40); // Start from bottom left with offset
+    path.lineTo(0, size.height - 30); // Left side
     
-    // Create smooth curve at bottom left
+    // Create a smooth bezier curve across the bottom
     path.quadraticBezierTo(
-      0, size.height - 20, // Control point
-      20, size.height - 20, // End point
+      size.width / 2, size.height + 10, // Control point in the middle, slightly lower
+      size.width, size.height - 30, // End point at right side
     );
     
-    // Line to bottom right curve start
-    path.lineTo(size.width - 20, size.height - 20);
-    
-    // Create smooth curve at bottom right
-    path.quadraticBezierTo(
-      size.width, size.height - 20, // Control point
-      size.width, size.height - 40, // End point
-    );
-    
-    // Complete the path
-    path.lineTo(size.width, 0);
+    path.lineTo(size.width, 0); // Right side up
     path.close();
     
     return path;
