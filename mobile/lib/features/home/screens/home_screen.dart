@@ -318,10 +318,10 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.15,
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.85,
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -334,75 +334,59 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: {'category': {'name': category['name']}},
           ),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: category['bgColor'] as Color,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Stack(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Decorative curve at bottom right
-                Positioned(
-                  bottom: -8,
-                  right: -8,
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(25),
+                // Icon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: category['iconBg'] as Color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      category['icon'] as String,
+                      style: const TextStyle(fontSize: 22),
                     ),
                   ),
                 ),
-                // Content
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Icon
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: category['iconBg'] as Color,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text(
-                          category['icon'] as String,
-                          style: const TextStyle(fontSize: 26),
-                        ),
-                      ),
+                const Spacer(),
+                // Title
+                Text(
+                  category['name'] as String,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF212121),
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                // Arrow button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const Spacer(),
-                    // Title
-                    Text(
-                      category['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF212121),
-                        height: 1.2,
-                      ),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 14,
+                      color: category['arrowColor'] as Color,
                     ),
-                    const SizedBox(height: 6),
-                    // Arrow button
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward,
-                          size: 16,
-                          color: category['arrowColor'] as Color,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
