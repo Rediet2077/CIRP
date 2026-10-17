@@ -77,120 +77,28 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Color(0xFF2E7D32),
         body: Center(
           child: CircularProgressIndicator(color: Colors.white),
         ),
       );
     }
     
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: CustomScrollView(
-        slivers: [
-          _buildHeader(context),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildCategoriesSection(context),
-                _buildRecentIssuesSection(context),
-                const SizedBox(height: 100),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 50, 20, 40),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
+    return Scaffold(
+      backgroundColor: Color(0xFFF5F5F5),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          slivers: [
+            _buildHeader(context),
+            SliverToBoxAdapter(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Hello, $_userName 👋',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            height: 1.2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    "Let's make our community\nbetter together",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
+                  _buildCategoriesSection(context),
+                  _buildRecentIssuesSection(context),
+                  const SizedBox(height: 100),
                 ],
               ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.white, size: 26),
-                  onPressed: () {},
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 12),
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    if (_unreadNotifications > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
             ),
           ],
         ),
@@ -198,15 +106,134 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildHeader(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Stack(
+        children: [
+          // Green curved header with city silhouette
+          ClipPath(
+            clipper: _HeaderClipper(),
+            child: Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // City silhouette at bottom
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 80,
+                      child: CustomPaint(
+                        painter: _CitySilhouettePainter(),
+                        size: Size.infinite,
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hello, $_userName 👋',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Let's make our community\nbetter together",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.search, color: Colors.white, size: 22),
+                                onPressed: () {},
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Stack(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                                    onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                if (_unreadNotifications > 0)
+                                  Positioned(
+                                    right: 6,
+                                    top: 6,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF5252),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 24),
+      padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        color: Color(0xFFF5F5F5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,9 +241,9 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text(
             'Report Category',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: Color(0xFF212121),
             ),
           ),
           const SizedBox(height: 4),
@@ -224,10 +251,10 @@ class _HomeScreenState extends State<HomeScreen> {
             'Select the type of issue',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Color(0xFF9E9E9E),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildCategoryGrid(),
         ],
       ),
@@ -235,61 +262,150 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryGrid() {
-    // Category icons mapped to correct categories with better colors
-    final categoryIcons = {
-      'road': {'icon': Icons.construction_outlined, 'color': Color(0xFFF44336)}, // Red for road damage
-      'water': {'icon': Icons.water_drop_outlined, 'color': Color(0xFF2196F3)}, // Blue for water
-      'garbage': {'icon': Icons.delete_outline, 'color': Color(0xFFFF9800)}, // Orange for garbage
-      'streetlight': {'icon': Icons.lightbulb_outline, 'color': Color(0xFFFFC107)}, // Yellow for streetlight
-      'drainage': {'icon': Icons.water_outlined, 'color': Color(0xFF00BCD4)}, // Cyan for drainage
-      'other': {'icon': Icons.more_horiz_outlined, 'color': Color(0xFF9C27B0)}, // Purple for other
-    };
-
-    // Use the actual categories from state
-    final displayCategories = _categories.length >= 6 
-        ? _categories.take(6).toList() 
-        : _categories;
+    // Category data with exact colors and icons from the image
+    final categories = [
+      {
+        'name': 'Road Damage',
+        'icon': '🛣️',
+        'bgColor': Color(0xFFFFEBEE),
+        'iconBg': Color(0xFFFFCDD2),
+        'iconColor': Color(0xFFD32F2F),
+        'arrowColor': Color(0xFFEF5350),
+      },
+      {
+        'name': 'Water Leakage',
+        'icon': '💧',
+        'bgColor': Color(0xFFE3F2FD),
+        'iconBg': Color(0xFFBBDEFB),
+        'iconColor': Color(0xFF1976D2),
+        'arrowColor': Color(0xFF42A5F5),
+      },
+      {
+        'name': 'Garbage',
+        'icon': '🗑️',
+        'bgColor': Color(0xFFFFF3E0),
+        'iconBg': Color(0xFFFFE0B2),
+        'iconColor': Color(0xFFF57C00),
+        'arrowColor': Color(0xFFFF9800),
+      },
+      {
+        'name': 'Streetlight',
+        'icon': '💡',
+        'bgColor': Color(0xFFF1F8E9),
+        'iconBg': Color(0xFFDCEDC8),
+        'iconColor': Color(0xFF689F38),
+        'arrowColor': Color(0xFF8BC34A),
+      },
+      {
+        'name': 'Drainage',
+        'icon': '🌊',
+        'bgColor': Color(0xFFE0F7FA),
+        'iconBg': Color(0xFFB2EBF2),
+        'iconColor': Color(0xFF0097A7),
+        'arrowColor': Color(0xFF00BCD4),
+      },
+      {
+        'name': 'Other',
+        'icon': '⋯',
+        'bgColor': Color(0xFFF3E5F5),
+        'iconBg': Color(0xFFE1BEE7),
+        'iconColor': Color(0xFF7B1FA2),
+        'arrowColor': Color(0xFF9C27B0),
+      },
+    ];
     
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.95,
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.05,
       ),
-      itemCount: displayCategories.length,
+      itemCount: categories.length,
       itemBuilder: (context, index) {
-        final category = displayCategories[index];
-        final name = (category['name'] ?? '').toString().toLowerCase();
+        final category = categories[index];
         
-        // Map category name to icon key
-        String categoryKey;
-        if (name.contains('road') || name.contains('damage')) {
-          categoryKey = 'road';
-        } else if (name.contains('water') && name.contains('leak')) {
-          categoryKey = 'water';
-        } else if (name.contains('garbage') || name.contains('waste')) {
-          categoryKey = 'garbage';
-        } else if (name.contains('street') || name.contains('light')) {
-          categoryKey = 'streetlight';
-        } else if (name.contains('drain')) {
-          categoryKey = 'drainage';
-        } else {
-          categoryKey = 'other';
-        }
-        
-        final iconData = categoryIcons[categoryKey] ?? categoryIcons['other']!;
-        
-        return _CategoryCard(
-          icon: iconData['icon'] as IconData,
-          label: category['name'] ?? 'Category',
-          color: iconData['color'] as Color,
+        return GestureDetector(
           onTap: () => Navigator.pushNamed(
             context,
             AppRoutes.reportProblem,
-            arguments: {'category': category},
+            arguments: {'category': {'name': category['name']}},
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: category['bgColor'] as Color,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                // Decorative curve at bottom right
+                Positioned(
+                  bottom: -10,
+                  right: -10,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+                // Content
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: category['iconBg'] as Color,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          category['icon'] as String,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Title
+                    Text(
+                      category['name'] as String,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF212121),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Arrow button
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward,
+                          size: 18,
+                          color: category['arrowColor'] as Color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -298,8 +414,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentIssuesSection(BuildContext context) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+      color: Color(0xFFF5F5F5),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       child: Column(
         children: [
           Row(
@@ -310,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: Color(0xFF212121),
                 ),
               ),
               GestureDetector(
@@ -319,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'See All',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.primary,
+                    color: Color(0xFF2E7D32),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -333,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 'No recent issues',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Color(0xFF9E9E9E),
                   fontSize: 14,
                 ),
               ),
@@ -561,4 +677,104 @@ class _IssueCard extends StatelessWidget {
     if (s.contains('rejected')) return 'Rejected';
     return 'Pending';
   }
+}
+
+// Header clipper for smooth curved bottom
+class _HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    // Create smooth curve
+    path.quadraticBezierTo(
+      size.width * 0.5,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
+    
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// City silhouette painter
+class _CitySilhouettePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    
+    // Start from bottom left
+    path.moveTo(0, size.height);
+    
+    // Building 1 (left side - short)
+    path.lineTo(0, size.height - 30);
+    path.lineTo(size.width * 0.12, size.height - 30);
+    path.lineTo(size.width * 0.12, size.height);
+    
+    // Building 2 (tall building)
+    path.moveTo(size.width * 0.15, size.height);
+    path.lineTo(size.width * 0.15, size.height - 50);
+    path.lineTo(size.width * 0.28, size.height - 50);
+    path.lineTo(size.width * 0.28, size.height);
+    
+    // Building 3 (medium)
+    path.moveTo(size.width * 0.32, size.height);
+    path.lineTo(size.width * 0.32, size.height - 40);
+    path.lineTo(size.width * 0.42, size.height - 40);
+    path.lineTo(size.width * 0.42, size.height);
+    
+    // Building 4 (very tall - center)
+    path.moveTo(size.width * 0.45, size.height);
+    path.lineTo(size.width * 0.45, size.height - 60);
+    path.lineTo(size.width * 0.55, size.height - 60);
+    path.lineTo(size.width * 0.55, size.height);
+    
+    // Building 5 (tall)
+    path.moveTo(size.width * 0.58, size.height);
+    path.lineTo(size.width * 0.58, size.height - 55);
+    path.lineTo(size.width * 0.68, size.height - 55);
+    path.lineTo(size.width * 0.68, size.height);
+    
+    // Tree 1
+    path.moveTo(size.width * 0.72, size.height);
+    path.lineTo(size.width * 0.74, size.height - 20);
+    path.lineTo(size.width * 0.73, size.height - 35);
+    path.lineTo(size.width * 0.75, size.height - 30);
+    path.lineTo(size.width * 0.77, size.height - 35);
+    path.lineTo(size.width * 0.76, size.height - 20);
+    path.lineTo(size.width * 0.78, size.height);
+    
+    // Building 6 (right side)
+    path.moveTo(size.width * 0.82, size.height);
+    path.lineTo(size.width * 0.82, size.height - 45);
+    path.lineTo(size.width * 0.92, size.height - 45);
+    path.lineTo(size.width * 0.92, size.height);
+    
+    // Tree 2
+    path.moveTo(size.width * 0.94, size.height);
+    path.lineTo(size.width * 0.95, size.height - 15);
+    path.lineTo(size.width * 0.94, size.height - 28);
+    path.lineTo(size.width * 0.96, size.height - 25);
+    path.lineTo(size.width * 0.98, size.height - 28);
+    path.lineTo(size.width * 0.97, size.height - 15);
+    path.lineTo(size.width * 0.98, size.height);
+    
+    path.lineTo(size.width, size.height);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
