@@ -5,7 +5,7 @@ import 'package:cirp/core/theme/app_colors.dart';
 import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/cirp_logo.dart';
-import 'package:cirp/core/services/auth_service.dart';
+import 'package:cirp/core/storage/local_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,37 +33,27 @@ class _LoginScreenState extends State<LoginScreen> {
     
     setState(() => _isLoading = true);
     
-    // Call backend API to login
-    final result = await AuthService.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
-    
-    setState(() => _isLoading = false);
-    
-    if (!mounted) return;
-    
-    if (result['success'] == true) {
-      // Save user data and tokens
-      final prefs = await SharedPreferences.getInstance();
-      final user = result['user'];
-      final tokens = result['tokens'];
+    try {
+      // Call local storage service to login
+      final result = await LocalAuthService.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
       
-      await prefs.setString('access_token', tokens['access'] ?? '');
-      await prefs.setString('refresh_token', tokens['refresh'] ?? '');
-      await prefs.setString('user_id', user['id'] ?? '');
-      await prefs.setString('user_email', user['email'] ?? '');
-      await prefs.setString('user_first_name', user['first_name'] ?? '');
-      await prefs.setString('user_last_name', user['last_name'] ?? '');
-      await prefs.setString('user_role', user['role'] ?? '');
+      setState(() => _isLoading = false);
       
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
-    } else {
+      if (!mounted) return;
+      
+      // Navigate to home
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      
+      if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Login failed'),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );

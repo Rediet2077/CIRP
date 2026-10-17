@@ -4,7 +4,7 @@ import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/features/language/language_provider.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/custom_text_field.dart';
-import 'package:cirp/core/services/auth_service.dart';
+import 'package:cirp/core/storage/local_auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -45,39 +45,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     
     setState(() => _isLoading = true);
     
-    final langProvider = context.read<LanguageProvider>();
-    
-    // Split full name into first and last name
-    final nameParts = _nameController.text.trim().split(' ');
-    final firstName = nameParts.first;
-    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : nameParts.first; // Use first name as last name if only one word
-    
-    // Debug print
-    print('Registering with:');
-    print('Email: ${_emailController.text.trim()}');
-    print('Phone: ${_phoneController.text.trim()}');
-    print('First Name: $firstName');
-    print('Last Name: $lastName');
-    print('Language: ${langProvider.languageCode}');
-    
-    // Call backend API to register
-    final result = await AuthService.register(
-      email: _emailController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
-      firstName: firstName,
-      lastName: lastName,
-      password: _passwordController.text,
-      passwordConfirm: _confirmPasswordController.text,
-      preferredLanguage: langProvider.languageCode,
-    );
-    
-    setState(() => _isLoading = false);
-    
-    if (!mounted) return;
-    
-    print('Registration result: $result');
-    
-    if (result['success'] == true) {
+    try {
+      // Call local storage service to register
+      final result = await LocalAuthService.signup(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        fullName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+      );
+      
+      setState(() => _isLoading = false);
+      
+      if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Registration successful! Please login.'),
@@ -86,26 +66,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
       Navigator.pop(context);
-    } else {
-      // Show detailed error
-      final errorMessage = result['message'] ?? 'Registration failed';
-      final errors = result['errors'] as Map<String, dynamic>?;
+    } catch (e) {
+      setState(() => _isLoading = false);
       
-      String detailedError = errorMessage;
-      if (errors != null) {
-        detailedError += '\n';
-        errors.forEach((key, value) {
-          if (value is List) {
-            detailedError += '\n$key: ${value.join(', ')}';
-          } else {
-            detailedError += '\n$key: $value';
-          }
-        });
-      }
+      if (!mounted) return;
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(detailedError),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),

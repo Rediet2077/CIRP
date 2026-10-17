@@ -5,7 +5,8 @@ import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/features/reports/screens/report_details_screen.dart';
 import 'package:cirp/shared/widgets/status_badge.dart';
-import 'package:cirp/core/services/api_service.dart';
+import 'package:cirp/core/storage/local_auth_service.dart';
+import 'package:cirp/core/storage/local_reports_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,51 +30,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final firstName = (prefs.getString('user_first_name') ?? '').trim();
+      // Get current user from local storage
+      final currentUser = await LocalAuthService.getCurrentUser();
       
-      String formattedName = firstName.isNotEmpty ? firstName : 'User';
+      String formattedName = currentUser?['full_name'] ?? 'User';
+      if (formattedName.contains(' ')) {
+        formattedName = formattedName.split(' ').first;
+      }
 
-      // Fetch categories
-      final categoriesResult = await ApiService.getCategories();
-      
-      // Fetch recent reports from API
-      final reportsResult = await ApiService.getReports(pageSize: 10);
-      
-      // Fetch notifications to get unread count
-      final notificationsResult = await ApiService.getNotifications();
+      // Get recent reports from local storage
+      final userId = currentUser?['id'] ?? '1';
+      final reports = await LocalReportsService.getRecentReports(userId);
       
       setState(() {
         _userName = formattedName;
-        
-        if (categoriesResult['success'] == true) {
-          final data = categoriesResult['data'];
-          // Handle both List and Map responses
-          if (data is List) {
-            _categories = data;
-          } else if (data is Map) {
-            _categories = [data]; // Wrap single object in list
-          } else {
-            _categories = [];
-          }
-        }
-        
-        if (reportsResult['success'] == true) {
-          final data = reportsResult['data'];
-          // Handle both List and Map responses
-          if (data is List) {
-            _recentReports = data;
-          } else if (data is Map) {
-            _recentReports = [data]; // Wrap single object in list
-          } else {
-            _recentReports = [];
-          }
-        }
-        
-        if (notificationsResult['success'] == true) {
-          _unreadNotifications = notificationsResult['unread_count'] ?? 0;
-        }
-        
+        _recentReports = reports.map((r) => {
+          'id': r['id'],
+          'title': r['description']?.toString().split('\n').first ?? 'Untitled',
+          'status': r['status'],
+          'category': {'name': r['category']},
+          'address': r['location'],
+          'created_at': r['created_at'],
+        }).toList();
+        _categories = [
+          {'id': 1, 'name': 'Road Damage'},
+          {'id': 2, 'name': 'Water Leakage'},
+          {'id': 3, 'name': 'Garbage'},
+          {'id': 4, 'name': 'Streetlight'},
+          {'id': 5, 'name': 'Drainage'},
+          {'id': 6, 'name': 'Other'},
+        ];
+        _unreadNotifications = 0; // Mock notification count
         _isLoading = false;
       });
     } catch (e) {
