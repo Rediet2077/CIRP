@@ -105,94 +105,97 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
+      child: ClipPath(
+        clipper: HeaderClipper(),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 50, 20, 50),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Hello, $_userName 👋',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            height: 1.2,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Hello, $_userName 👋',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    "Let's make our community\nbetter together",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      height: 1.4,
+                      ],
                     ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Let's make our community\nbetter together",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.search, color: Colors.white, size: 26),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                  Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
+                        onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      if (_unreadNotifications > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.white, size: 26),
-                  onPressed: () {},
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 12),
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    if (_unreadNotifications > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -236,30 +239,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryGrid() {
-    // Default categories with icons
+    // Category icons mapped to correct categories with better colors
     final categoryIcons = {
-      'streetlight': {'icon': Icons.lightbulb_outline, 'color': Color(0xFF4CAF50)},
-      'water': {'icon': Icons.water_drop_outlined, 'color': Color(0xFF2196F3)},
-      'damage': {'icon': Icons.warning_amber_outlined, 'color': Color(0xFFF44336)},
-      'waste': {'icon': Icons.delete_outline, 'color': Color(0xFFFF9800)},
-      'pothole': {'icon': Icons.build_outlined, 'color': Color(0xFF9C27B0)},
-      'safety': {'icon': Icons.shield_outlined, 'color': Color(0xFFE91E63)},
+      'road': {'icon': Icons.construction_outlined, 'color': Color(0xFFF44336)}, // Red for road damage
+      'water': {'icon': Icons.water_drop_outlined, 'color': Color(0xFF2196F3)}, // Blue for water
+      'garbage': {'icon': Icons.delete_outline, 'color': Color(0xFFFF9800)}, // Orange for garbage
+      'streetlight': {'icon': Icons.lightbulb_outline, 'color': Color(0xFFFFC107)}, // Yellow for streetlight
+      'drainage': {'icon': Icons.water_outlined, 'color': Color(0xFF00BCD4)}, // Cyan for drainage
+      'other': {'icon': Icons.more_horiz_outlined, 'color': Color(0xFF9C27B0)}, // Purple for other
     };
 
-    // Fallback categories if API returns less than 6
-    final fallbackCategories = [
-      {'id': 1, 'name': 'Streetlight'},
-      {'id': 2, 'name': 'No Water'},
-      {'id': 3, 'name': 'Damage'},
-      {'id': 4, 'name': 'Waste Mgt'},
-      {'id': 5, 'name': 'Potholes'},
-      {'id': 6, 'name': 'Safety'},
-    ];
-
-    // Use API categories if we have enough, otherwise use fallback
+    // Use the actual categories from state
     final displayCategories = _categories.length >= 6 
         ? _categories.take(6).toList() 
-        : fallbackCategories;
+        : _categories;
     
     return GridView.builder(
       shrinkWrap: true,
@@ -274,15 +267,24 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final category = displayCategories[index];
         final name = (category['name'] ?? '').toString().toLowerCase();
-        final categoryKey = name.contains('street') ? 'streetlight' 
-            : name.contains('water') ? 'water'
-            : name.contains('damage') ? 'damage'
-            : name.contains('waste') ? 'waste'
-            : name.contains('pothole') || name.contains('road') ? 'pothole'
-            : name.contains('safety') ? 'safety'
-            : 'damage';
         
-        final iconData = categoryIcons[categoryKey] ?? categoryIcons['damage']!;
+        // Map category name to icon key
+        String categoryKey;
+        if (name.contains('road') || name.contains('damage')) {
+          categoryKey = 'road';
+        } else if (name.contains('water') && name.contains('leak')) {
+          categoryKey = 'water';
+        } else if (name.contains('garbage') || name.contains('waste')) {
+          categoryKey = 'garbage';
+        } else if (name.contains('street') || name.contains('light')) {
+          categoryKey = 'streetlight';
+        } else if (name.contains('drain')) {
+          categoryKey = 'drainage';
+        } else {
+          categoryKey = 'other';
+        }
+        
+        final iconData = categoryIcons[categoryKey] ?? categoryIcons['other']!;
         
         return _CategoryCard(
           icon: iconData['icon'] as IconData,
@@ -563,4 +565,38 @@ class _IssueCard extends StatelessWidget {
     if (s.contains('rejected')) return 'Rejected';
     return 'Pending';
   }
+}
+
+
+// Custom clipper for curved header bottom
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40); // Start from bottom left with offset
+    
+    // Create smooth curve at bottom left
+    path.quadraticBezierTo(
+      0, size.height - 20, // Control point
+      20, size.height - 20, // End point
+    );
+    
+    // Line to bottom right curve start
+    path.lineTo(size.width - 20, size.height - 20);
+    
+    // Create smooth curve at bottom right
+    path.quadraticBezierTo(
+      size.width, size.height - 20, // Control point
+      size.width, size.height - 40, // End point
+    );
+    
+    // Complete the path
+    path.lineTo(size.width, 0);
+    path.close();
+    
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
