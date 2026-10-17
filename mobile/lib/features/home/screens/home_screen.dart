@@ -319,9 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.05,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.15,
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -334,23 +334,23 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: {'category': {'name': category['name']}},
           ),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: category['bgColor'] as Color,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Stack(
               children: [
                 // Decorative curve at bottom right
                 Positioned(
-                  bottom: -10,
-                  right: -10,
+                  bottom: -8,
+                  right: -8,
                   child: Container(
-                    width: 60,
-                    height: 60,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                 ),
@@ -360,16 +360,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     // Icon
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
                         color: category['iconBg'] as Color,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
                         child: Text(
                           category['icon'] as String,
-                          style: const TextStyle(fontSize: 32),
+                          style: const TextStyle(fontSize: 26),
                         ),
                       ),
                     ),
@@ -378,26 +378,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       category['name'] as String,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF212121),
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     // Arrow button
                     Align(
                       alignment: Alignment.centerRight,
                       child: Container(
-                        width: 32,
-                        height: 32,
+                        width: 28,
+                        height: 28,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(7),
                         ),
                         child: Icon(
                           Icons.arrow_forward,
-                          size: 18,
+                          size: 16,
                           color: category['arrowColor'] as Color,
                         ),
                       ),
