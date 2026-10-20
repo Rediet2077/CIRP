@@ -60,7 +60,25 @@ export const INITIAL_MOCK_USERS: UserRecord[] = [
     email: "aster.desta@cirp.gov.et",
     role: "DEPARTMENT_ADMIN",
     status: "ACTIVE",
-    department: { id: "dept-roads", name: "Roads & Transport Department", code: "ROAD" },
+    department: { id: "dept-light", name: "Street Lighting Department", code: "LITE" },
+  },
+  {
+    id: "usr-007",
+    first_name: "Mulu",
+    last_name: "Kebede",
+    email: "mulu.kebede@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    status: "ACTIVE",
+    department: { id: "dept-waste", name: "Sanitation & Waste Management", code: "WASTE" },
+  },
+  {
+    id: "usr-008",
+    first_name: "Selam",
+    last_name: "Tesfaye",
+    email: "selam.tesfaye@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    status: "ACTIVE",
+    department: { id: "dept-build", name: "Public Facilities & Buildings", code: "BUILD" },
   },
 ];
 
