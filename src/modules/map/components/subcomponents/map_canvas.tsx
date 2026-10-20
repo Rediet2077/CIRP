@@ -2,34 +2,37 @@
 
 import React from "react";
 import { AssetRecord } from "@/modules/assets/types/asset_types";
+import { ReportRecord } from "@/modules/reports/types/report_types";
+import { getCoordinateBounds, isValidGeographicPoint, projectCoordinate } from "./coordinate_projection";
 
 interface MapCanvasProps {
   visibleAssets: AssetRecord[];
+  visibleReports: ReportRecord[];
   selectedPinAsset: AssetRecord | null;
   onSelectPin: (asset: AssetRecord) => void;
+  onSelectReport: (report: ReportRecord) => void;
   isLoading: boolean;
 }
 
 export function MapCanvas({
   visibleAssets,
+  visibleReports,
   selectedPinAsset,
   onSelectPin,
+  onSelectReport,
   isLoading,
 }: MapCanvasProps) {
-  const minLat = 8.98;
-  const maxLat = 9.04;
-  const minLng = 38.73;
-  const maxLng = 38.79;
-
-  const toMapX = (lng: number) => {
-    const norm = (lng - minLng) / (maxLng - minLng);
-    return Math.max(10, Math.min(90, norm * 80 + 10));
-  };
-
-  const toMapY = (lat: number) => {
-    const norm = (lat - minLat) / (maxLat - minLat);
-    return Math.max(10, Math.min(90, (1 - norm) * 80 + 10));
-  };
+  const assetsWithLocation = visibleAssets.filter(isValidGeographicPoint);
+  const reportsWithLocation = visibleReports.filter((report) =>
+    isValidGeographicPoint({ latitude: report.citizen_latitude, longitude: report.citizen_longitude }),
+  );
+  const coordinates = [
+    ...assetsWithLocation,
+    ...reportsWithLocation.map((report) => ({ latitude: report.citizen_latitude, longitude: report.citizen_longitude })),
+  ];
+  const bounds = coordinates.length ? getCoordinateBounds(coordinates) : null;
+  const toMapX = (lng: number) => bounds ? projectCoordinate(lng, bounds.minLng, bounds.maxLng) : 50;
+  const toMapY = (lat: number) => bounds ? 92 - projectCoordinate(lat, bounds.minLat, bounds.maxLat) : 50;
 
   if (isLoading) {
     return (
@@ -37,6 +40,10 @@ export function MapCanvas({
         Loading GIS telemetry data...
       </div>
     );
+  }
+
+  if (!coordinates.length || !bounds) {
+    return <div className="p-8 text-center text-sm text-muted-foreground">No assets or reports with valid coordinates are available in this scope.</div>;
   }
 
   return (
@@ -49,66 +56,15 @@ export function MapCanvas({
         <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
           <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.1" className="text-border/60" />
         </pattern>
-        <radialGradient id="subcityGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-        </radialGradient>
       </defs>
 
       <rect width="100" height="100" fill="url(#grid)" />
-      <circle cx="50" cy="50" r="45" fill="url(#subcityGlow)" />
-
-      {/* Stylized Municipal Road Arteries */}
-      <path
-        d="M 15 20 Q 45 40 85 30"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="0.8"
-        className="text-border"
-        strokeDasharray="2 1"
-      />
-      <path
-        d="M 25 85 Q 50 50 75 15"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        className="text-border"
-      />
-      <path
-        d="M 10 50 L 90 50"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="0.6"
-        className="text-border/40"
-      />
-      <path
-        d="M 50 10 L 50 90"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="0.6"
-        className="text-border/40"
-      />
-
-      <ellipse
-        cx="50"
-        cy="50"
-        rx="32"
-        ry="28"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="0.5"
-        className="text-primary/30"
-        strokeDasharray="1 1"
-      />
-
-      {/* Sub-City Labels */}
-      <text x="30" y="32" className="text-[2.2px] fill-muted-foreground select-none font-normal" opacity="0.6">BOLE SUB-CITY</text>
-      <text x="65" y="70" className="text-[2.2px] fill-muted-foreground select-none font-normal" opacity="0.6">KIRKOS SUB-CITY</text>
-      <text x="20" y="75" className="text-[2.2px] fill-muted-foreground select-none font-normal" opacity="0.6">NIFAS SILK</text>
-      <text x="60" y="25" className="text-[2.2px] fill-muted-foreground select-none font-normal" opacity="0.6">YEKA SUB-CITY</text>
+      <text x="8" y="5" className="text-[2px] fill-muted-foreground">Recorded coordinates · no basemap or boundary data configured</text>
+      <text x="8" y="97" className="text-[2px] fill-muted-foreground">{bounds.minLng.toFixed(4)}° to {bounds.maxLng.toFixed(4)}° longitude</text>
+      <text x="91" y="95" textAnchor="end" className="text-[2px] fill-muted-foreground">{bounds.minLat.toFixed(4)}° to {bounds.maxLat.toFixed(4)}° latitude</text>
 
       {/* Interactive Pins */}
-      {visibleAssets.map((asset) => {
+      {assetsWithLocation.map((asset) => {
         const x = toMapX(asset.longitude);
         const y = toMapY(asset.latitude);
         const isSelected = selectedPinAsset?.id === asset.id;
@@ -166,6 +122,32 @@ export function MapCanvas({
             >
               {asset.asset_code}
             </text>
+          </g>
+        );
+      })}
+
+      {reportsWithLocation.map((report) => {
+        const x = toMapX(report.citizen_longitude);
+        const y = toMapY(report.citizen_latitude);
+        const color = report.priority === "CRITICAL" ? "#dc2626" : report.priority === "HIGH" ? "#ea580c" : report.priority === "MEDIUM" ? "#d97706" : "#2563eb";
+        return (
+          <g
+            key={`report-${report.id}`}
+            role="button"
+            tabIndex={0}
+            aria-label={`${report.report_code}, ${report.priority} priority, ${report.status}`}
+            onClick={() => onSelectReport(report)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelectReport(report);
+              }
+            }}
+            className="cursor-pointer"
+          >
+            <title>{`${report.report_code} · ${report.priority} · ${report.status}`}</title>
+            <path d={`M ${x} ${y - 2.8} C ${x - 2.2} ${y - 0.3}, ${x - 2} ${y + 1.6}, ${x} ${y + 2} C ${x + 2} ${y + 1.6}, ${x + 2.2} ${y - 0.3}, ${x} ${y - 2.8} Z`} fill={color} stroke="white" strokeWidth="0.4" />
+            <circle cx={x} cy={y - 0.4} r="0.65" fill="white" />
           </g>
         );
       })}
