@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { SidebarFooter } from "@/ui/sidebar";
 import {
   DropdownMenu,
@@ -14,13 +15,14 @@ import { CaretUpDownIcon, SignOutIcon } from "@phosphor-icons/react";
 import { useNavigationStore } from "../../store/navigation_store";
 import { useDepartmentList } from "@/modules/departments/hooks/list/use_department_list";
 import { UserProfileHeader } from "./user_footer/user_profile_header";
-import { UserRoleSwitcher } from "./user_footer/user_role_switcher";
 import { UserThemeMenu } from "./user_footer/user_theme_menu";
+import { localStorageService } from "../../services/local_storage";
 
 export function SidebarUserFooter() {
   const {
     currentUserRole,
     setCurrentUserRole,
+    setActiveOfficerDepartmentId,
     selectedDepartmentFilter,
     activeOfficerDepartmentId,
   } = useNavigationStore();
@@ -50,8 +52,13 @@ export function SidebarUserFooter() {
       : "officer@cirp.gov.et";
 
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const handleLogout = () => {
+    localStorageService.removeItem("authSession");
+    queryClient.clear();
+    setCurrentUserRole("DEPARTMENT_ADMIN");
+    setActiveOfficerDepartmentId("__unassigned__");
     router.push("/login");
   };
 
@@ -90,12 +97,6 @@ export function SidebarUserFooter() {
           />
 
           <DropdownMenuSeparator className="my-1.5" />
-
-          {/* Extracted Account Role Switcher Subcomponent */}
-          <UserRoleSwitcher
-            currentUserRole={currentUserRole}
-            setCurrentUserRole={setCurrentUserRole}
-          />
 
           <DropdownMenuSeparator className="my-1.5" />
 

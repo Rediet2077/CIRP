@@ -86,6 +86,15 @@ export function TopNavbar() {
 
       {/* Right section: Notifications & Quick Actions */}
       <div className="flex items-center gap-3">
+        {!process.env.NEXT_PUBLIC_API_URL && (
+          <Badge
+            variant="outline"
+            className="text-xs text-amber-700 border-amber-500/40"
+            title="This deployment uses browser-side sample data because no API backend is configured."
+          >
+            Demo data
+          </Badge>
+        )}
         {/* Notifications Quick Link */}
         <Link href="/dashboard/notifications" className="relative">
           <Button variant="ghost" size="icon-sm" className="h-9 w-9 relative text-foreground">

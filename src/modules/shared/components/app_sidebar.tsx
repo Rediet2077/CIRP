@@ -37,7 +37,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     unreadNotificationsCount: notificationList.filter((n) => !n.is_read).length,
   };
 
-  const navGroups = getSidebarNavigationGroups(counts);
+  const navGroups = getSidebarNavigationGroups(counts, currentUserRole);
 
   return (
     <Sidebar className="border-r border-border bg-sidebar" {...props}>

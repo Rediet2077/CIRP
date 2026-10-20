@@ -18,8 +18,9 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set) => ({
   activeTab: "dashboard",
   selectedDepartmentFilter: "all",
-  currentUserRole: "SYSTEM_ADMIN",
-  activeOfficerDepartmentId: "",
+  // Start with the least privileged role until a real login supplies a role.
+  currentUserRole: "DEPARTMENT_ADMIN",
+  activeOfficerDepartmentId: "__unassigned__",
   searchQuery: "",
 
   setActiveTab: (tab) => set({ activeTab: tab }),

@@ -10,6 +10,8 @@ import {
   GearIcon,
   IconProps,
 } from "@phosphor-icons/react";
+import { UserRole } from "@/modules/shared/types/enums";
+import { canAccessDashboardPath } from "@/modules/auth/services/role_access";
 
 export interface SidebarSubItem {
   title: string;
@@ -35,8 +37,8 @@ export interface SidebarNavGroupConfig {
 export function getSidebarNavigationGroups(counts: {
   newReportsCount: number;
   unreadNotificationsCount?: number;
-}): SidebarNavGroupConfig[] {
-  return [
+}, role: UserRole): SidebarNavGroupConfig[] {
+  const groups: SidebarNavGroupConfig[] = [
     {
       label: "Platform Navigation",
       items: [
@@ -87,4 +89,9 @@ export function getSidebarNavigationGroups(counts: {
       ],
     },
   ];
+
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canAccessDashboardPath(role, item.url)),
+  }));
 }

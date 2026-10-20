@@ -58,12 +58,16 @@ export async function executeApiRequest<T>(options: {
         output: outputSchema,
       });
 
-      if (response.data) {
+      if (response.data !== undefined) {
         return response.data;
       }
     } catch (error) {
-      console.warn(`[BetterFetch] Remote API error on ${endpoint}. Falling back to local store.`, error);
+      // A configured backend is authoritative. Falling back here can make a
+      // failed write look successful and show stale or unscoped mock records.
+      throw error;
     }
+
+    throw new Error(`The configured API returned no data for ${endpoint}.`);
   }
 
   if (mockFallback) {

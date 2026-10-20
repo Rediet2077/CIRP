@@ -3,6 +3,7 @@ import { SidebarInset, SidebarProvider } from "@/ui/sidebar";
 import { CIRPQueryProvider } from "@/modules/shared/components/query_provider";
 import { AppSidebar } from "@/modules/shared/components/app_sidebar";
 import { TopNavbar } from "@/modules/shared/components/top_navbar";
+import { DashboardAccessGuard } from "@/modules/shared/components/dashboard_access_guard";
 
 export default function DashboardLayout({
   children,
@@ -15,7 +16,9 @@ export default function DashboardLayout({
         <AppSidebar />
         <SidebarInset className="bg-background min-h-screen flex flex-col">
           <TopNavbar />
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main className="flex-1 flex flex-col">
+            <DashboardAccessGuard>{children}</DashboardAccessGuard>
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </CIRPQueryProvider>

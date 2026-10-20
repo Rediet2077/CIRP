@@ -22,6 +22,8 @@ export function getReportStatusBadge(status: string) {
       return <Badge variant="destructive" className="text-sm font-medium py-0.5">NEW</Badge>;
     case "ACCEPTED":
       return <Badge variant="outline" className="border-border text-foreground bg-secondary text-sm font-normal py-0.5">ACCEPTED</Badge>;
+    case "DISPUTED":
+      return <Badge variant="destructive" className="text-sm font-medium py-0.5">REJECTED</Badge>;
     case "IN_PROGRESS":
       return <Badge variant="secondary" className="text-sm font-normal py-0.5">IN PROGRESS</Badge>;
     case "COMPLETED_PENDING_VERIFICATION":
