@@ -12,6 +12,7 @@ import { useLinkAsset } from "../../hooks/update/use_link_asset";
 import { useReportUIStore } from "../../store/report_ui_store";
 import { ReportDetailsHeader } from "./report_details_header";
 import { ReportAiInsights } from "./report_ai_insights";
+import { getDemoRejectionReason } from "../../services/report_decisions";
 
 export function ReportDetailsDialog() {
   const { selectedReportId, isDetailsDialogOpen, closeDetailsDialog, openAcceptDialog } = useReportUIStore();
@@ -33,6 +34,12 @@ export function ReportDetailsDialog() {
             />
 
             <div className="space-y-6 pt-4">
+              {report.status === "DISPUTED" && getDemoRejectionReason(report.id) && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                  <p className="font-medium text-destructive">Rejected by department</p>
+                  <p className="mt-1 text-muted-foreground">{getDemoRejectionReason(report.id)}</p>
+                </div>
+              )}
               {/* Title and Citizen Description */}
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-foreground">{report.title}</h3>

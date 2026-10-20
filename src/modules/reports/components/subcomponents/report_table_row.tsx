@@ -5,16 +5,18 @@ import { TableRow, TableCell } from "@/ui/table";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { ArrowSquareOutIcon, CheckIcon } from "@phosphor-icons/react";
+import { XIcon } from "@phosphor-icons/react";
 import { getPriorityBadge, getReportStatusBadge } from "@/modules/shared/components/triage_badges";
 import { ReportRecord as CitizenReportItem } from "../../types/report_types";
 
 interface ReportTableRowProps {
   report: CitizenReportItem;
   onOpenAccept: (id: string) => void;
+  onOpenReject: (id: string) => void;
   onOpenDetails: (id: string) => void;
 }
 
-export function ReportTableRow({ report, onOpenAccept, onOpenDetails }: ReportTableRowProps) {
+export function ReportTableRow({ report, onOpenAccept, onOpenReject, onOpenDetails }: ReportTableRowProps) {
   return (
     <TableRow className="border-border hover:bg-muted/30 transition-colors">
       <TableCell className="font-medium text-sm">
@@ -50,14 +52,14 @@ export function ReportTableRow({ report, onOpenAccept, onOpenDetails }: ReportTa
       <TableCell className="text-right text-sm">
         <div className="flex items-center justify-end gap-1">
           {report.status === "NEW" && (
-            <Button
-              size="sm"
-              className="h-8 text-sm font-medium gap-1"
-              onClick={() => onOpenAccept(report.id)}
-            >
-              <CheckIcon className="w-3.5 h-3.5" />
-              Accept
-            </Button>
+            <>
+              <Button size="sm" className="h-8 text-sm font-medium gap-1" onClick={() => onOpenAccept(report.id)}>
+                <CheckIcon className="w-3.5 h-3.5" /> Accept
+              </Button>
+              <Button size="sm" variant="destructive" className="h-8 text-sm font-medium gap-1" onClick={() => onOpenReject(report.id)}>
+                <XIcon className="w-3.5 h-3.5" /> Reject
+              </Button>
+            </>
           )}
           <Button
             variant="ghost"

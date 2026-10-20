@@ -1,5 +1,6 @@
 import { executeApiRequest } from "@/modules/shared/services/api_client";
 import { mockDataStore } from "@/modules/shared/services/mock_storage";
+import { withDemoDecisions } from "../../services/report_decisions";
 import { ReportRecord, ReportRecordSchema } from "../../types/report_types";
 
 export const REPORT_DETAILS_QUERY_KEY = ["reports", "details"] as const;
@@ -12,7 +13,7 @@ export async function fetchReportDetails(reportId: string): Promise<ReportRecord
     mockFallback: () => {
       const rep = mockDataStore.getReportById(reportId);
       if (!rep) throw new Error("Report not found");
-      return rep;
+      return withDemoDecisions(rep);
     },
   });
 }

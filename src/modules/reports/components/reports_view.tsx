@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/ui/card";
 import { Badge } from "@/ui/badge";
 import { Input } from "@/ui/input";
@@ -25,8 +25,11 @@ import { useNavigationStore } from "@/modules/shared/store/navigation_store";
 import { ReportTableRow } from "./subcomponents/report_table_row";
 import { ReportDetailsDialog } from "./dialogs/report_details_dialog";
 import { AcceptReportDialog } from "./dialogs/accept_report_dialog";
+import { RejectReportDialog } from "./dialogs/reject_report_dialog";
+import { ReportRecord } from "../types/report_types";
 
 export function ReportsView() {
+  const [reportToReject, setReportToReject] = useState<ReportRecord | null>(null);
   const { selectedDepartmentFilter, currentUserRole, activeOfficerDepartmentId } = useNavigationStore();
   const effectiveDept = currentUserRole === "DEPARTMENT_ADMIN" ? activeOfficerDepartmentId : selectedDepartmentFilter;
 
@@ -92,6 +95,7 @@ export function ReportsView() {
                 <SelectItem value="all" className="text-sm font-normal">All Statuses</SelectItem>
                 <SelectItem value="NEW" className="text-sm font-normal">New (Pending)</SelectItem>
                 <SelectItem value="ACCEPTED" className="text-sm font-normal">Accepted</SelectItem>
+                <SelectItem value="DISPUTED" className="text-sm font-normal">Rejected by Department</SelectItem>
                 <SelectItem value="IN_PROGRESS" className="text-sm font-normal">In Progress</SelectItem>
                 <SelectItem value="COMPLETED_PENDING_VERIFICATION" className="text-sm font-normal">Pending Verification</SelectItem>
                 <SelectItem value="RESOLVED" className="text-sm font-normal">Resolved</SelectItem>
@@ -149,6 +153,7 @@ export function ReportsView() {
                       key={report.id}
                       report={report}
                       onOpenAccept={openAcceptDialog}
+                      onOpenReject={(id) => setReportToReject(reportList.find((report) => report.id === id) || null)}
                       onOpenDetails={openDetailsDialog}
                     />
                   ))
@@ -161,6 +166,7 @@ export function ReportsView() {
 
       <ReportDetailsDialog />
       <AcceptReportDialog />
+      {reportToReject && <RejectReportDialog report={reportToReject} open onOpenChange={(open) => !open && setReportToReject(null)} />}
     </div>
   );
 }

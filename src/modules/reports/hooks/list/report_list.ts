@@ -1,5 +1,6 @@
 import { executeApiRequest } from "@/modules/shared/services/api_client";
 import { mockDataStore } from "@/modules/shared/services/mock_storage";
+import { withDemoDecisions } from "../../services/report_decisions";
 import {
   ReportListResponseSchema,
   ReportListResponse,
@@ -13,6 +14,6 @@ export async function fetchReportList(departmentId?: string, query?: string): Pr
     method: "GET",
     query: { department_id: departmentId, search: query },
     outputSchema: ReportListResponseSchema,
-    mockFallback: () => mockDataStore.getReports(departmentId, query),
+    mockFallback: () => mockDataStore.getReports(departmentId, query).map(withDemoDecisions),
   });
 }

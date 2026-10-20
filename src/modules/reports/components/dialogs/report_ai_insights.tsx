@@ -13,7 +13,11 @@ export function ReportAiInsights({ report }: ReportAiInsightsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="space-y-3">
+      <p className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+        Automated indicators are suggestions for staff review. They are not proof of fraud or a confirmed duplicate.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       {report.ai_category_prediction && (
         <div className="text-sm space-y-1">
           <span className="text-muted-foreground font-medium">AI Category Prediction</span>
@@ -31,9 +35,9 @@ export function ReportAiInsights({ report }: ReportAiInsightsProps) {
           <span className="text-muted-foreground font-medium">Duplicate Detection</span>
           <div className="font-medium text-foreground">
             {report.ai_duplicate_analysis.has_potential_duplicate ? (
-              <span className="text-destructive">Possible Duplicate</span>
+              <span className="text-amber-700">Potential match · review needed</span>
             ) : (
-              <span>Unique Incident</span>
+              <span>No duplicate indicator returned</span>
             )}
           </div>
           <div className="text-muted-foreground">
@@ -43,11 +47,12 @@ export function ReportAiInsights({ report }: ReportAiInsightsProps) {
                 {((report.ai_duplicate_analysis.similarity_score || 0) * 100).toFixed(0)}% similarity)
               </span>
             ) : (
-              <span>No conflicting reports found within 500m.</span>
+              <span>No potential match was returned by the configured analysis.</span>
             )}
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
