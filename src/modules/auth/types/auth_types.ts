@@ -40,7 +40,11 @@ export interface DemoAccountPreset {
   role: "SYSTEM_ADMIN" | "DEPARTMENT_ADMIN";
   department_name: string;
   department_code: string;
+  demo_password: string;
 }
+
+// Used only by the explicitly labeled, browser-side demo dataset.
+export const DEMO_PASSWORD = "password123";
 
 export const DEMO_PRESETS: DemoAccountPreset[] = [
   {
@@ -50,6 +54,7 @@ export const DEMO_PRESETS: DemoAccountPreset[] = [
     role: "SYSTEM_ADMIN",
     department_name: "Central Municipal Operations",
     department_code: "CENT",
+    demo_password: DEMO_PASSWORD,
   },
   {
     title: "Roads Department Admin",
@@ -58,5 +63,60 @@ export const DEMO_PRESETS: DemoAccountPreset[] = [
     role: "DEPARTMENT_ADMIN",
     department_name: "Roads & Transport Department",
     department_code: "ROAD",
+    demo_password: "RoadsCIRP321",
+  },
+  {
+    title: "Water Admin",
+    name: "Helen Mengistu",
+    email: "helen.m@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Water & Sanitation Department",
+    department_code: "WATER",
+    demo_password: "WaterCIRP321",
+  },
+  {
+    title: "Electricity Admin",
+    name: "Almaz Bekele",
+    email: "almaz.bekele@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Electricity Department",
+    department_code: "ELEC",
+    demo_password: "ElectricityCIRP321",
+  },
+  {
+    title: "Drainage Admin",
+    name: "Yonas Girma",
+    email: "yonas.girma@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Drainage & Flood Management",
+    department_code: "DRAIN",
+    demo_password: "DrainageCIRP321",
+  },
+  {
+    title: "Waste Admin",
+    name: "Mulu Kebede",
+    email: "mulu.kebede@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Sanitation & Waste Management",
+    department_code: "WASTE",
+    demo_password: "WasteCIRP321",
+  },
+  {
+    title: "Street Lighting Admin",
+    name: "Aster Desta",
+    email: "aster.desta@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Street Lighting Department",
+    department_code: "LITE",
+    demo_password: "StreetLightingCIRP321",
+  },
+  {
+    title: "Public Facilities Admin",
+    name: "Selam Tesfaye",
+    email: "selam.tesfaye@cirp.gov.et",
+    role: "DEPARTMENT_ADMIN",
+    department_name: "Public Facilities & Buildings",
+    department_code: "BUILD",
+    demo_password: "PublicFacilitiesCIRP321",
   },
 ];

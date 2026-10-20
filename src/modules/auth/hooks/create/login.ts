@@ -1,6 +1,8 @@
 import { executeApiRequest } from "@/modules/shared/services/api_client";
 import { INITIAL_MOCK_USERS } from "@/modules/users/hooks/list/user_list";
 import {
+  DEMO_PASSWORD,
+  DEMO_PRESETS,
   LoginInput,
   LoginResponse,
   LoginResponseSchema,
@@ -16,23 +18,22 @@ export async function loginUser(input: LoginInput): Promise<LoginResponse> {
     outputSchema: LoginResponseSchema,
     mockFallback: () => {
       const existingUser = INITIAL_MOCK_USERS.find(
-        (u) => u.email.toLowerCase() === input.email.toLowerCase()
+        (u) =>
+          u.email.toLowerCase() === input.email.trim().toLowerCase() &&
+          u.status === "ACTIVE"
       );
 
-      const user = existingUser || {
-        id: `usr-${Date.now()}`,
-        first_name: input.email.split("@")[0].split(".")[0],
-        last_name: input.email.split("@")[0].split(".")[1] || "User",
-        email: input.email,
-        role: "SYSTEM_ADMIN" as const,
-        status: "ACTIVE" as const,
-        department: { id: "dept-mock", name: "Mock Department", code: "MOCK" },
-      };
+      const expectedPassword = DEMO_PRESETS.find((preset) =>
+        preset.email.toLowerCase() === existingUser?.email.toLowerCase()
+      )?.demo_password ?? DEMO_PASSWORD;
+      if (!existingUser || input.password !== expectedPassword) {
+        throw new Error("Invalid demo credentials. Select a listed demo account and use the displayed demo password.");
+      }
 
       return {
-        access: `mock-access-token-${Date.now()}`,
-        refresh: `mock-refresh-token-${Date.now()}`,
-        user,
+        access: "demo-session",
+        refresh: "demo-refresh",
+        user: existingUser,
       };
     },
   });

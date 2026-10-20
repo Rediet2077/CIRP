@@ -34,6 +34,10 @@ export function DemoAccountSwitcher({
           Dev Mode
         </Badge>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {currentPreset?.role === "DEPARTMENT_ADMIN" ? "Department demo password: " : "City Admin demo password: "}
+        <span className="font-medium">{currentPreset?.demo_password}</span>. These sample accounts are not system credentials.
+      </p>
 
       <Select
         value={selectedEmail || ""}

@@ -23,7 +23,7 @@ import { Alert, AlertDescription } from "@/ui/alert";
 import { LockKeyIcon, EnvelopeSimpleIcon, WarningCircleIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { useLogin } from "../hooks/create/use_login";
 import { DemoAccountSwitcher } from "./subcomponents/demo_account_switcher";
-import { DemoAccountPreset } from "../types/auth_types";
+import { DEMO_PASSWORD, DemoAccountPreset } from "../types/auth_types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "../types/auth_schemas";
@@ -46,7 +46,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "dawit.tadesse@cirp.gov.et",
-      password: "password123",
+      password: DEMO_PASSWORD,
     },
   });
 
@@ -54,7 +54,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
 
   const handleSelectPreset = (preset: DemoAccountPreset) => {
     setValue("email", preset.email);
-    setValue("password", "password123");
+    setValue("password", preset.demo_password);
     setFormError(null);
   };
 
@@ -171,6 +171,12 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 Register an account
               </Link>
             </FieldDescription>
+            <Link
+              href="/transparency"
+              className="mt-3 inline-block text-sm font-medium text-primary hover:underline underline-offset-4"
+            >
+              View public report tracking
+            </Link>
           </div>
         </CardContent>
       </Card>
