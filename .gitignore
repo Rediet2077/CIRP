@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
@@ -19,11 +20,15 @@ wheels/
 .installed.cfg
 *.egg
 venv/
+.venv/
 ENV/
 env/
+**/venv/
+**/.venv/
 
 # Python lib (but not Flutter lib)
 **/venv/lib/
+**/.venv/lib/
 **/ENV/lib/
 **/env/lib/
 
@@ -32,8 +37,11 @@ env/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-/staticfiles/
-/media/
+*.sqlite3
+staticfiles/
+media/
+**/staticfiles/
+**/media/
 
 # Node
 node_modules/
@@ -76,6 +84,9 @@ ai/image_classification/models/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment & Secrets
 .env
+.env.*
 .env.local
+!.env.example
+!.env.*.example

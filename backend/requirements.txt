@@ -1,0 +1,21 @@
+Django>=5.1,<6.0
+asgiref>=3.8
+sqlparse>=0.5
+tzdata>=2024.1
+
+# Environment & Database
+python-dotenv>=1.0.0
+dj-database-url>=2.1.0
+psycopg[binary]>=3.2.0
+
+# Django REST Framework & Auth
+djangorestframework>=3.15.0
+djangorestframework-simplejwt>=5.3.0
+django-cors-headers>=4.4.0
+django-filter>=24.2
+
+# AI Service Communication
+httpx>=0.28.0
+
+# Image Handling
+Pillow>=10.0.0
