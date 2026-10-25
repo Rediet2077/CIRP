@@ -28,14 +28,29 @@ class _MyReportsScreenState extends State<MyReportsScreen>
   Future<void> _loadReports() async {
     setState(() => _isLoading = true);
     
-    final result = await ApiService.getMyReports();
-    
-    setState(() {
-      if (result['success'] == true) {
-        _allReports = result['data'] ?? [];
-      }
-      _isLoading = false;
-    });
+    try {
+      final result = await ApiService.getMyReports();
+      
+      print('📥 API Result: $result'); // Debug log
+      
+      setState(() {
+        if (result['success'] == true) {
+          final data = result['data'];
+          print('📊 Data received: ${data?.length ?? 0} reports'); // Debug log
+          _allReports = data is List ? data : [];
+        } else {
+          print('❌ API Error: ${result['message']}'); // Debug log
+          _allReports = [];
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Exception in _loadReports: $e'); // Debug log
+      setState(() {
+        _allReports = [];
+        _isLoading = false;
+      });
+    }
   }
 
   @override

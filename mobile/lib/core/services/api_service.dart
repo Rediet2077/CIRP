@@ -75,10 +75,11 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final reports = data['reports'] ?? data['data'] ?? [];
         return {
           'success': true,
-          'data': data['data'],
-          'count': data['count'],
+          'data': reports,
+          'count': data['total'] ?? data['count'] ?? (reports is List ? reports.length : 0),
           'next': data['next'],
           'previous': data['previous'],
         };
@@ -115,10 +116,12 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        // Backend returns {reports: [...], total, page, limit}
+        final reports = data['reports'] ?? data['data'] ?? [];
         return {
           'success': true,
-          'data': data['data'] ?? [],
-          'count': data['count'] ?? 0,
+          'data': reports,
+          'count': data['total'] ?? data['count'] ?? reports.length,
         };
       } else {
         return {
@@ -135,20 +138,21 @@ class ApiService {
   }
 
   /// Get report by ID
-  static Future<Map<String, dynamic>> getReportById(int id) async {
+  static Future<Map<String, dynamic>> getReportById(dynamic id) async {
     try {
       final headers = await _getAuthHeaders();
       final response = await http.get(
-        Uri.parse(ApiConstants.reportDetailUrl(id)),
+        Uri.parse(ApiConstants.reportDetailUrl(id.toString())),
         headers: headers,
       ).timeout(ApiConstants.connectTimeout);
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final report = data is Map<String, dynamic> ? (data['report'] ?? data['data'] ?? data) : data;
         return {
           'success': true,
-          'data': data['data'],
+          'data': report,
         };
       } else {
         return {
@@ -165,7 +169,7 @@ class ApiService {
   }
 
   /// Get report details (alias for getReportById)
-  static Future<Map<String, dynamic>> getReportDetails(int id) async {
+  static Future<Map<String, dynamic>> getReportDetails(dynamic id) async {
     return getReportById(id);
   }
 
@@ -193,7 +197,10 @@ class ApiService {
       };
       
       if (address != null) body['address'] = address;
-      if (images != null && images.isNotEmpty) body['media_images'] = images;
+      if (images != null && images.isNotEmpty) {
+        body['images'] = images;
+        body['media_images'] = images;
+      }
 
       final response = await http.post(
         Uri.parse(ApiConstants.reportsUrl),
@@ -207,7 +214,7 @@ class ApiService {
         return {
           'success': true,
           'message': data['message'] ?? 'Report created successfully',
-          'data': data['data'],
+          'data': data['report'] ?? data['data'] ?? data,
         };
       } else {
         String errMsg = data['message'] ?? data['detail'] ?? '';
@@ -243,9 +250,10 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final categories = data['categories'] ?? data['data'] ?? [];
         return {
           'success': true,
-          'data': data['data'] ?? [],
+          'data': categories,
         };
       } else {
         return {
@@ -273,9 +281,10 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final departments = data['departments'] ?? data['data'] ?? [];
         return {
           'success': true,
-          'data': data['data'] ?? [],
+          'data': departments,
         };
       } else {
         return {
@@ -307,10 +316,11 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final notifications = data['notifications'] ?? data['data'] ?? [];
         return {
           'success': true,
-          'data': data['data'] ?? [],
-          'count': data['count'] ?? 0,
+          'data': notifications,
+          'count': data['count'] ?? (notifications is List ? notifications.length : 0),
           'unread_count': data['unread_count'] ?? 0,
         };
       } else {
@@ -330,10 +340,6 @@ class ApiService {
   /// Get dashboard statistics
   static Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-      final headers = await _getAuthHeaders();
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('user_id') ?? '';
-      
       // Fetch user's reports to get statistics
       final myReportsResult = await getMyReports();
       final allReportsResult = await getReports(pageSize: 1);
@@ -348,10 +354,14 @@ class ApiService {
         final reports = myReportsResult['data'] as List? ?? [];
         
         for (var report in reports) {
-          final status = report['status'] ?? '';
-          if (status == 'pending') pendingCount++;
-          else if (status == 'in_progress') inProgressCount++;
-          else if (status == 'resolved') resolvedCount++;
+          final status = (report['status'] ?? '').toString().toLowerCase();
+          if (status == 'pending' || status == 'new') {
+            pendingCount++;
+          } else if (status == 'in_progress' || status == 'assigned') {
+            inProgressCount++;
+          } else if (status == 'resolved') {
+            resolvedCount++;
+          }
         }
       }
       
@@ -379,10 +389,17 @@ class ApiService {
   static Future<Map<String, dynamic>> deleteReport(String reportId) async {
     try {
       final headers = await _getAuthHeaders();
-      final response = await http.post(
-        Uri.parse('${ApiConstants.apiBaseUrl}/reports/$reportId/citizen-delete/'),
+      var response = await http.delete(
+        Uri.parse('${ApiConstants.reportsUrl}/$reportId'),
         headers: headers,
       ).timeout(ApiConstants.connectTimeout);
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        response = await http.post(
+          Uri.parse('${ApiConstants.apiBaseUrl}/reports/$reportId/citizen-delete/'),
+          headers: headers,
+        ).timeout(ApiConstants.connectTimeout);
+      }
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         return {'success': true, 'message': 'Report removed successfully'};
@@ -441,6 +458,108 @@ class ApiService {
       };
     } catch (e) {
       return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Send OTP to email
+  static Future<Map<String, dynamic>> sendOTP({
+    required String email,
+    required String fullName,
+    String purpose = 'registration',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConstants.sendOTPUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'full_name': fullName,
+          'purpose': purpose,
+        }),
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? '',
+        'expiresAt': data['expiresAt'],
+        'expiresIn': data['expiresIn'],
+        'retryAfter': data['retryAfter'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  /// Verify OTP code
+  static Future<Map<String, dynamic>> verifyOTP({
+    required String email,
+    required String otpCode,
+    String purpose = 'registration',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConstants.verifyOTPUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp_code': otpCode,
+          'purpose': purpose,
+        }),
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? '',
+        'verified': data['verified'] ?? false,
+        'attemptsLeft': data['attemptsLeft'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'verified': false,
+      };
+    }
+  }
+
+  /// Resend OTP code
+  static Future<Map<String, dynamic>> resendOTP({
+    required String email,
+    required String fullName,
+    String purpose = 'registration',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConstants.resendOTPUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'full_name': fullName,
+          'purpose': purpose,
+        }),
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? '',
+        'expiresAt': data['expiresAt'],
+        'expiresIn': data['expiresIn'],
+        'retryAfter': data['retryAfter'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
     }
   }
 }

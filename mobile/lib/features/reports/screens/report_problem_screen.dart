@@ -148,12 +148,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     // Get category name and UUID
     final categories = ['Road Damage', 'Water & Sewage', 'Garbage', 'Streetlight', 'Drainage', 'Other'];
     final categoryUUIDs = [
-      'd5029881-2d3a-4add-817d-1c48614d39ee', // Road Damage
-      '5e850149-14bd-45b5-a7bf-7aa83dfe97da', // Water Supply
-      '576d6b9f-d2b5-4569-91f4-a9c7cf56be60', // Garbage
-      '3ffaed57-c384-4a22-8c06-a9817e176de8', // Streetlight
-      '9d84109c-e4df-463d-83ae-d8c31d4ab7e0', // Drainage
-      '64940c79-479c-4784-ab44-e7b8c0a3c777', // Other
+      '771ed052-e3f0-4709-bf8c-30cf532751d8', // Road Damage
+      'c0810993-eba1-4649-bab3-759c52b5b6b6', // Water Leakage
+      '01393c0f-6bff-44ac-9533-7cdbeae21a4e', // Garbage
+      'aeac7e07-736a-46ac-a8d4-e8d95ddc8138', // Streetlight
+      'ca7060f8-52d7-478b-9a46-da95eb3ac224', // Drainage
+      '0964f75b-4375-4986-803a-1a2bfaf2dd7e', // Other
     ];
     final categoryName = categories[_selectedCategory];
     final categoryId = categoryUUIDs[_selectedCategory % categoryUUIDs.length];

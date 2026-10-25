@@ -7,7 +7,7 @@ class LanguageProvider extends ChangeNotifier {
   String _languageCode = 'en';
 
   // Supported languages (Material Design has built-in support)
-  static const List<String> _supportedLanguages = ['en', 'am'];
+  static const List<String> _supportedLanguages = ['en', 'am', 'or', 'ti'];
 
   LanguageProvider() {
     _loadSaved();
@@ -49,7 +49,11 @@ class LanguageProvider extends ChangeNotifier {
   String currentLanguageName() {
     switch (_languageCode) {
       case 'am':
-        return 'Amharic';
+        return 'አማርኛ'; // Amharic
+      case 'or':
+        return 'Afaan Oromoo'; // Oromo
+      case 'ti':
+        return 'ትግርኛ'; // Tigrinya
       default:
         return 'English';
     }
@@ -57,8 +61,8 @@ class LanguageProvider extends ChangeNotifier {
 
   List<Map<String, String>> get languageOptions => [
         {'code': 'en', 'name': 'English', 'icon': 'EN'},
-        {'code': 'am', 'name': 'Amharic', 'icon': 'AM'},
-        // Oromo and Tigrinya removed - Material Design doesn't support them yet
-        // You can still process reports in these languages on backend
+        {'code': 'am', 'name': 'አማርኛ', 'icon': 'አማ'},
+        {'code': 'or', 'name': 'Afaan Oromoo', 'icon': 'OR'},
+        {'code': 'ti', 'name': 'ትግርኛ', 'icon': 'ትግ'},
       ];
 }

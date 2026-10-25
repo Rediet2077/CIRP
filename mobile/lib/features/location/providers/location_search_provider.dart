@@ -31,7 +31,7 @@ class SearchResult {
 }
 
 class LocationSearchProvider extends ChangeNotifier {
-  LatLng _pickedLatLng = const LatLng(9.0054, 38.7636);
+  LatLng _pickedLatLng = LatLng(9.0054, 38.7636);
   String _pickedAddress = 'Bole Road, near Atlas, Addis Ababa';
   bool _isLoadingAddress = false;
 

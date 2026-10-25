@@ -5,6 +5,8 @@ import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/features/reports/screens/report_details_screen.dart';
 import 'package:cirp/shared/widgets/status_badge.dart';
+import 'package:cirp/core/storage/local_auth_service.dart';
+import 'package:cirp/core/storage/local_reports_service.dart';
 import 'package:cirp/core/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,8 +17,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userName = '';
+  String _userName = 'User';
   List<dynamic> _recentReports = [];
+  List<dynamic> _categories = [];
   bool _isLoading = true;
   int _unreadNotifications = 0;
 
@@ -27,435 +30,453 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final firstName = (prefs.getString('user_first_name') ?? '').trim();
-    final lastName = (prefs.getString('user_last_name') ?? '').trim();
-    
-    String formattedName = 'User';
-    if (firstName.isNotEmpty) {
-      if (lastName.isEmpty || lastName.toLowerCase() == firstName.toLowerCase()) {
-        formattedName = firstName;
-      } else {
-        formattedName = '$firstName $lastName';
+    try {
+      // Get current user from SharedPreferences (stored during login)
+      final prefs = await SharedPreferences.getInstance();
+      final userName = prefs.getString('user_name') ?? 'User';
+      final userEmail = prefs.getString('user_email') ?? '';
+      
+      String formattedName = userName;
+      if (formattedName.contains(' ')) {
+        formattedName = formattedName.split(' ').first;
       }
-    } else if (lastName.isNotEmpty) {
-      formattedName = lastName;
-    }
 
-    // Fetch user's own recent reports from API
-    final reportsResult = await ApiService.getMyReports();
-    
-    // Fetch notifications to get unread count
-    final notificationsResult = await ApiService.getNotifications();
-    
-    setState(() {
-      _userName = formattedName;
-      
+      // Get recent reports from API - fetch all and take first 3
+      final reportsResult = await ApiService.getMyReports(page: 1);
+      List<dynamic> reports = [];
       if (reportsResult['success'] == true) {
-        _recentReports = reportsResult['data'] ?? [];
+        final allReports = reportsResult['data'] ?? [];
+        // Take only the 3 most recent reports
+        reports = allReports.take(3).toList();
       }
       
-      if (notificationsResult['success'] == true) {
-        _unreadNotifications = notificationsResult['unread_count'] ?? 0;
+      setState(() {
+        _userName = formattedName;
+        _recentReports = reports;
+        _categories = [
+          {'id': 1, 'name': 'Road Damage'},
+          {'id': 2, 'name': 'Water Leakage'},
+          {'id': 3, 'name': 'Garbage'},
+          {'id': 4, 'name': 'Streetlight'},
+          {'id': 5, 'name': 'Drainage'},
+          {'id': 6, 'name': 'Other'},
+        ];
+        _unreadNotifications = 0; // Will be updated with real notifications later
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading home data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
-      
-      _isLoading = false;
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Color(0xFF2E7D32),
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: Colors.white),
         ),
       );
     }
     
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, l10n),
-                _buildBanner(),
-                const SizedBox(height: 20),
-                _buildQuickActions(context, l10n),
-                const SizedBox(height: 24),
-                _buildRecentReports(context, l10n),
-                const SizedBox(height: 16),
-              ],
+      backgroundColor: Color(0xFFF5F5F5),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          slivers: [
+            _buildHeader(context),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  _buildCategoriesSection(context),
+                  _buildRecentIssuesSection(context),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
+  Widget _buildHeader(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Stack(
+        children: [
+          // Green curved header with city silhouette
+          ClipPath(
+            clipper: _HeaderClipper(),
+            child: Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // City silhouette at bottom
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 80,
+                      child: CustomPaint(
+                        painter: _CitySilhouettePainter(),
+                        size: Size.infinite,
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hello, $_userName 👋',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Let's make our community\nbetter together",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.search, color: Colors.white, size: 22),
+                                onPressed: () {},
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Stack(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                                    onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                if (_unreadNotifications > 0)
+                                  Positioned(
+                                    right: 6,
+                                    top: 6,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF5252),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoriesSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.menu,
-                color: AppColors.textPrimary, size: 26),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+          const Text(
+            'Report Category',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF212121),
+            ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
+          const SizedBox(height: 4),
+          const Text(
+            'Select the type of issue',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF9E9E9E),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildCategoryGrid(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryGrid() {
+    // Category data with exact colors and icons from the image
+    final categories = [
+      {
+        'name': 'Road Damage',
+        'icon': '🛣️',
+        'bgColor': Color(0xFFFFEBEE),
+        'iconBg': Color(0xFFFFCDD2),
+        'iconColor': Color(0xFFD32F2F),
+        'arrowColor': Color(0xFFEF5350),
+      },
+      {
+        'name': 'Water Leakage',
+        'icon': '💧',
+        'bgColor': Color(0xFFE3F2FD),
+        'iconBg': Color(0xFFBBDEFB),
+        'iconColor': Color(0xFF1976D2),
+        'arrowColor': Color(0xFF42A5F5),
+      },
+      {
+        'name': 'Garbage',
+        'icon': '🗑️',
+        'bgColor': Color(0xFFFFF3E0),
+        'iconBg': Color(0xFFFFE0B2),
+        'iconColor': Color(0xFFF57C00),
+        'arrowColor': Color(0xFFFF9800),
+      },
+      {
+        'name': 'Streetlight',
+        'icon': '💡',
+        'bgColor': Color(0xFFF1F8E9),
+        'iconBg': Color(0xFFDCEDC8),
+        'iconColor': Color(0xFF689F38),
+        'arrowColor': Color(0xFF8BC34A),
+      },
+      {
+        'name': 'Drainage',
+        'icon': '🌊',
+        'bgColor': Color(0xFFE0F7FA),
+        'iconBg': Color(0xFFB2EBF2),
+        'iconColor': Color(0xFF0097A7),
+        'arrowColor': Color(0xFF00BCD4),
+      },
+      {
+        'name': 'Other',
+        'icon': '⋯',
+        'bgColor': Color(0xFFF3E5F5),
+        'iconBg': Color(0xFFE1BEE7),
+        'iconColor': Color(0xFF7B1FA2),
+        'arrowColor': Color(0xFF9C27B0),
+      },
+    ];
+    
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.1, // Increased more to make cards even shorter
+      ),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(
+            context,
+            AppRoutes.reportProblem,
+            arguments: {'category': {'name': category['name']}},
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Asymmetric padding
+            decoration: BoxDecoration(
+              color: category['bgColor'] as Color,
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Hello, $_userName!',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                // Icon
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: category['iconBg'] as Color,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: Center(
+                    child: Text(
+                      category['icon'] as String,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
                 ),
-                Text(
-                  l10n.homeSubtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
+                // Title - with constrained height
+                SizedBox(
+                  height: 21, // Reduced from 22 to eliminate final 0.7px
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      category['name'] as String,
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF212121),
+                        height: 1.0, // Minimum line height
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.visible,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                // Arrow button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 11,
+                      color: category['arrowColor'] as Color,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.notifications_outlined,
-                    color: AppColors.textPrimary, size: 26),
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.notifications),
-              ),
-              if (_unreadNotifications > 0)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppColors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildBanner() {
+  Widget _buildRecentIssuesSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      height: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: CustomPaint(
-              size: const Size(double.infinity, 60),
-              painter: _BannerSkylinePainter(),
-            ),
-          ),
-          Positioned(
-            right: -10,
-            top: -10,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.07),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 18,
-            top: 8,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.10),
-              ),
-              child: const Icon(Icons.eco, color: Colors.white, size: 24),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
-    final actions = [
-      _ActionItem(
-        icon: Icons.report_problem_outlined,
-        label: l10n.reportProblem,
-        sublabel: l10n.reportProblemSub,
-        color: AppColors.primary,
-        onTap: () =>
-            Navigator.pushNamed(context, AppRoutes.reportProblem),
-      ),
-      _ActionItem(
-        icon: Icons.assignment_outlined,
-        label: l10n.myReports,
-        sublabel: l10n.myReportsSub,
-        color: AppColors.blue,
-        onTap: () => Navigator.pushNamed(context, AppRoutes.myReports),
-      ),
-      _ActionItem(
-        icon: Icons.notifications_outlined,
-        label: l10n.notifications,
-        sublabel: l10n.notificationsSub,
-        color: AppColors.orange,
-        onTap: () =>
-            Navigator.pushNamed(context, AppRoutes.notifications),
-      ),
-      _ActionItem(
-        icon: Icons.person_outline,
-        label: l10n.profile,
-        sublabel: l10n.profileSub,
-        color: AppColors.purple,
-        onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      color: Color(0xFFF5F5F5),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       child: Column(
         children: [
           Row(
-            children: [
-              _QuickActionCard(item: actions[0]),
-              const SizedBox(width: 10),
-              _QuickActionCard(item: actions[1]),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _QuickActionCard(item: actions[2]),
-              const SizedBox(width: 10),
-              _QuickActionCard(item: actions[3]),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentReports(BuildContext context, AppLocalizations l10n) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                l10n.recentReports,
-                style: const TextStyle(
-                  fontSize: 16,
+              const Text(
+                'Recent Issues',
+                style: TextStyle(
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: Color(0xFF212121),
                 ),
               ),
               GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.myReports),
-                child: Text(
-                  l10n.viewAll,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.primary,
+                onTap: () => Navigator.pushNamed(context, AppRoutes.myReports),
+                child: const Text(
+                  'See All',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF2E7D32),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        if (_recentReports.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Text(
-              'No reports yet',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
+          const SizedBox(height: 16),
+          if (_recentReports.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(40),
+              child: Text(
+                'No recent issues',
+                style: TextStyle(
+                  color: Color(0xFF9E9E9E),
+                  fontSize: 14,
+                ),
               ),
+            )
+          else
+            Column(
+              children: _recentReports.take(5).map((report) => _IssueCard(
+                report: report,
+                onTap: () async {
+                  final reloaded = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReportDetailsScreen(report: report),
+                    ),
+                  );
+                  if (reloaded == true) {
+                    _loadData();
+                  }
+                },
+              )).toList(),
             ),
-          )
-        else
-          ..._recentReports.map(
-            (report) => _RecentReportCard(
-              title: report['title'] ?? 'Untitled',
-              status: report['status'] ?? 'pending',
-              date: report['created_at'] ?? '',
-              onTap: () async {
-                final reloaded = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => ReportDetailsScreen(report: report)),
-                );
-                if (reloaded == true) {
-                  _loadData();
-                }
-              },
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ActionItem {
-  final IconData icon;
-  final String label;
-  final String sublabel;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionItem({
-    required this.icon,
-    required this.label,
-    required this.sublabel,
-    required this.color,
-    required this.onTap,
-  });
-}
-
-class _QuickActionCard extends StatelessWidget {
-  final _ActionItem item;
-
-  const _QuickActionCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: item.onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(item.icon, color: item.color, size: 22),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                item.label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  height: 1.2,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.sublabel,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.textSecondary,
-                  height: 1.3,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _RecentReportCard extends StatelessWidget {
-  final String title;
-  final String status;
-  final String date;
+class _CategoryCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
   final VoidCallback onTap;
 
-  const _RecentReportCard({
-    required this.title,
-    required this.status,
-    required this.date,
+  const _CategoryCard({
+    required this.icon,
+    required this.label,
+    required this.color,
     required this.onTap,
   });
 
@@ -464,58 +485,34 @@ class _RecentReportCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(10),
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(Icons.image_outlined,
-                  color: AppColors.textSecondary, size: 24),
+              child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  StatusBadge(status: status, small: true),
-                  const SizedBox(height: 3),
-                  Text(date,
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textSecondary)),
-                ],
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const Icon(Icons.chevron_right,
-                color: AppColors.textSecondary, size: 18),
           ],
         ),
       ),
@@ -523,29 +520,251 @@ class _RecentReportCard extends StatelessWidget {
   }
 }
 
-class _BannerSkylinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12);
-    final buildings = [
-      [0.0, 0.3, 0.06], [0.07, 0.1, 0.07], [0.15, 0.22, 0.08],
-      [0.24, 0.0, 0.10], [0.35, 0.18, 0.07], [0.43, 0.28, 0.06],
-      [0.50, 0.08, 0.09], [0.60, 0.20, 0.08], [0.69, 0.12, 0.07],
-      [0.77, 0.25, 0.08], [0.86, 0.15, 0.07], [0.94, 0.30, 0.06],
-    ];
-    for (final b in buildings) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(b[0] * size.width, b[1] * size.height,
-              b[2] * size.width, (1 - b[1]) * size.height),
-          const Radius.circular(2),
-        ),
-        paint,
-      );
-    }
+class _IssueCard extends StatelessWidget {
+  final Map<String, dynamic> report;
+  final VoidCallback onTap;
+
+  const _IssueCard({
+    required this.report,
+    required this.onTap,
+  });
+
+  Color _getStatusColor(String status) {
+    final s = status.toLowerCase();
+    if (s.contains('resolved') || s.contains('completed')) return AppColors.green;
+    if (s.contains('assigned') || s.contains('progress')) return AppColors.orange;
+    if (s.contains('review')) return AppColors.blue;
+    if (s.contains('rejected')) return AppColors.red;
+    return AppColors.textSecondary;
+  }
+
+  IconData _getCategoryIcon(String? category) {
+    if (category == null) return Icons.report_outlined;
+    final cat = category.toLowerCase();
+    if (cat.contains('water')) return Icons.water_drop_outlined;
+    if (cat.contains('street')) return Icons.lightbulb_outline;
+    if (cat.contains('pothole') || cat.contains('road')) return Icons.build_outlined;
+    return Icons.report_outlined;
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter _) => false;
+  Widget build(BuildContext context) {
+    final status = report['status'] ?? 'pending';
+    final title = report['title'] ?? 'Untitled Issue';
+    final category = report['category']?['name'];
+    final address = report['address'] ?? '';
+    final createdAt = report['created_at'] ?? '';
+    
+    // Format time (e.g., "Reported 6pm")
+    String timeText = 'Recently';
+    if (createdAt.isNotEmpty) {
+      try {
+        final date = DateTime.parse(createdAt);
+        final hour = date.hour;
+        final ampm = hour >= 12 ? 'pm' : 'am';
+        final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        timeText = 'Reported $displayHour$ampm';
+      } catch (e) {
+        timeText = 'Recently';
+      }
+    }
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                _getCategoryIcon(category),
+                color: _getStatusColor(status),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${category ?? 'Issue'} · $timeText',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  if (address.isNotEmpty)
+                    Text(
+                      '${address.split(',').first}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                _getStatusLabel(status),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _getStatusColor(status),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getStatusLabel(String status) {
+    final s = status.toLowerCase();
+    if (s.contains('assigned') || s.contains('progress')) return 'Assigned';
+    if (s.contains('resolved') || s.contains('completed')) return 'Resolved';
+    if (s.contains('review')) return 'Review';
+    if (s.contains('rejected')) return 'Rejected';
+    return 'Pending';
+  }
+}
+
+// Header clipper for smooth curved bottom
+class _HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    // Create smooth curve
+    path.quadraticBezierTo(
+      size.width * 0.5,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
+    
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// City silhouette painter
+class _CitySilhouettePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    
+    // Start from bottom left
+    path.moveTo(0, size.height);
+    
+    // Building 1 (left side - short)
+    path.lineTo(0, size.height - 30);
+    path.lineTo(size.width * 0.12, size.height - 30);
+    path.lineTo(size.width * 0.12, size.height);
+    
+    // Building 2 (tall building)
+    path.moveTo(size.width * 0.15, size.height);
+    path.lineTo(size.width * 0.15, size.height - 50);
+    path.lineTo(size.width * 0.28, size.height - 50);
+    path.lineTo(size.width * 0.28, size.height);
+    
+    // Building 3 (medium)
+    path.moveTo(size.width * 0.32, size.height);
+    path.lineTo(size.width * 0.32, size.height - 40);
+    path.lineTo(size.width * 0.42, size.height - 40);
+    path.lineTo(size.width * 0.42, size.height);
+    
+    // Building 4 (very tall - center)
+    path.moveTo(size.width * 0.45, size.height);
+    path.lineTo(size.width * 0.45, size.height - 60);
+    path.lineTo(size.width * 0.55, size.height - 60);
+    path.lineTo(size.width * 0.55, size.height);
+    
+    // Building 5 (tall)
+    path.moveTo(size.width * 0.58, size.height);
+    path.lineTo(size.width * 0.58, size.height - 55);
+    path.lineTo(size.width * 0.68, size.height - 55);
+    path.lineTo(size.width * 0.68, size.height);
+    
+    // Tree 1
+    path.moveTo(size.width * 0.72, size.height);
+    path.lineTo(size.width * 0.74, size.height - 20);
+    path.lineTo(size.width * 0.73, size.height - 35);
+    path.lineTo(size.width * 0.75, size.height - 30);
+    path.lineTo(size.width * 0.77, size.height - 35);
+    path.lineTo(size.width * 0.76, size.height - 20);
+    path.lineTo(size.width * 0.78, size.height);
+    
+    // Building 6 (right side)
+    path.moveTo(size.width * 0.82, size.height);
+    path.lineTo(size.width * 0.82, size.height - 45);
+    path.lineTo(size.width * 0.92, size.height - 45);
+    path.lineTo(size.width * 0.92, size.height);
+    
+    // Tree 2
+    path.moveTo(size.width * 0.94, size.height);
+    path.lineTo(size.width * 0.95, size.height - 15);
+    path.lineTo(size.width * 0.94, size.height - 28);
+    path.lineTo(size.width * 0.96, size.height - 25);
+    path.lineTo(size.width * 0.98, size.height - 28);
+    path.lineTo(size.width * 0.97, size.height - 15);
+    path.lineTo(size.width * 0.98, size.height);
+    
+    path.lineTo(size.width, size.height);
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

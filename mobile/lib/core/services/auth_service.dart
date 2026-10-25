@@ -6,12 +6,9 @@ class AuthService {
   /// Register a new user
   static Future<Map<String, dynamic>> register({
     required String email,
-    required String phoneNumber,
-    required String firstName,
-    required String lastName,
     required String password,
-    required String passwordConfirm,
-    String preferredLanguage = 'en-us',
+    required String fullName,
+    String? phoneNumber,
   }) async {
     try {
       final response = await http.post(
@@ -19,28 +16,25 @@ class AuthService {
         headers: ApiConstants.headers,
         body: jsonEncode({
           'email': email,
-          'phone_number': phoneNumber,
-          'first_name': firstName,
-          'last_name': lastName,
           'password': password,
-          'password_confirm': passwordConfirm,
-          'preferred_language': preferredLanguage,
+          'full_name': fullName,
+          'phone_number': phoneNumber ?? '',
         }),
       ).timeout(ApiConstants.connectTimeout);
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return {
-          'success': true,
+          'success': data['success'] ?? true,
           'message': data['message'] ?? 'Registration successful',
-          'user': data['data']['user'],
-          'tokens': data['data']['tokens'],
+          'user': data['user'],
+          'requiresVerification': data['requiresVerification'] ?? false,
         };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Registration failed',
+          'message': data['message'] ?? data['error'] ?? 'Registration failed',
           'errors': data['errors'],
         };
       }
@@ -70,16 +64,25 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        // Backend returns: {success, message, token, user: {id, email, full_name, role}}
         return {
-          'success': true,
+          'success': data['success'] ?? true,
           'message': data['message'] ?? 'Login successful',
-          'user': data['data']['user'],
-          'tokens': data['data'],
+          'token': data['token'] ?? data['access'] ?? '',
+          'user': data['user'],
+        };
+      } else if (response.statusCode == 403) {
+        // Email not verified
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Email not verified',
+          'requiresVerification': data['requiresVerification'] ?? false,
+          'email': data['email'],
         };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Login failed',
+          'message': data['message'] ?? data['error'] ?? 'Login failed',
           'errors': data['errors'],
         };
       }

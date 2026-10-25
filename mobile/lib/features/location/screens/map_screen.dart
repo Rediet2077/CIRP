@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/generated/app_localizations.dart';
+import 'package:cirp/core/services/api_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -20,27 +22,29 @@ class _MapScreenState extends State<MapScreen> {
   final FocusNode _searchFocus = FocusNode();
 
   bool _isSearching = false;
+  bool _isLoadingReports = true;
   List<_SearchResult> _searchResults = [];
   bool _showResults = false;
   Timer? _debounce;
+  LatLng? _userLocation;
+  String? _errorMessage;
 
   Set<String> _activeFilters = {
     'Road Damage', 'Water Leakage', 'Garbage',
     'Streetlight', 'Drainage', 'Other',
   };
 
-  final List<_ReportPin> _allPins = [
-    _ReportPin(location: const LatLng(9.0120, 38.7600), category: 'Road Damage', count: 12, color: AppColors.mapRed),
-    _ReportPin(location: const LatLng(9.0180, 38.7750), category: 'Water Leakage', count: 7, color: AppColors.mapBlue),
-    _ReportPin(location: const LatLng(9.0050, 38.7650), category: 'Garbage', count: 5, color: AppColors.mapOrange),
-    _ReportPin(location: const LatLng(9.0070, 38.7820), category: 'Water Leakage', count: 8, color: AppColors.mapBlue),
-    _ReportPin(location: const LatLng(9.0200, 38.7500), category: 'Drainage', count: 3, color: AppColors.mapGreen),
-    _ReportPin(location: const LatLng(9.0090, 38.7900), category: 'Streetlight', count: 2, color: AppColors.mapPurple),
-    _ReportPin(location: const LatLng(9.0150, 38.7700), category: 'Other', count: 4, color: AppColors.textSecondary),
-  ];
+  List<_ReportPin> _allPins = [];
 
   List<_ReportPin> get _visiblePins =>
       _allPins.where((p) => _activeFilters.contains(p.category)).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+    _getUserLocation();
+  }
 
   @override
   void dispose() {
@@ -49,6 +53,143 @@ class _MapScreenState extends State<MapScreen> {
     _searchFocus.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  /// Load reports from backend API
+  Future<void> _loadReports() async {
+    setState(() {
+      _isLoadingReports = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await ApiService.getReports(pageSize: 100); // Get all reports
+
+      if (result['success'] == true && result['data'] != null) {
+        final reports = result['data'] as List;
+        
+        // Group reports by location and category
+        final Map<String, List<dynamic>> grouped = {};
+        
+        for (var report in reports) {
+          if (report['latitude'] != null && report['longitude'] != null) {
+            final lat = (report['latitude'] is String) 
+                ? double.tryParse(report['latitude']) ?? 0.0
+                : (report['latitude'] as num).toDouble();
+            final lng = (report['longitude'] is String)
+                ? double.tryParse(report['longitude']) ?? 0.0
+                : (report['longitude'] as num).toDouble();
+            
+            if (lat != 0.0 && lng != 0.0) {
+              // Round coordinates to group nearby reports
+              final key = '${lat.toStringAsFixed(3)}_${lng.toStringAsFixed(3)}_${report['category_name'] ?? 'Other'}';
+              if (!grouped.containsKey(key)) {
+                grouped[key] = [];
+              }
+              grouped[key]!.add(report);
+            }
+          }
+        }
+
+        // Create pins from grouped reports
+        final pins = <_ReportPin>[];
+        grouped.forEach((key, reports) {
+          final first = reports.first;
+          final lat = (first['latitude'] is String)
+              ? double.tryParse(first['latitude']) ?? 9.0100
+              : (first['latitude'] as num).toDouble();
+          final lng = (first['longitude'] is String)
+              ? double.tryParse(first['longitude']) ?? 38.7636
+              : (first['longitude'] as num).toDouble();
+          
+          final category = first['category_name'] ?? 'Other';
+          final color = _getCategoryColor(category);
+          
+          pins.add(_ReportPin(
+            location: LatLng(lat, lng),
+            category: category,
+            count: reports.length,
+            color: color,
+            reports: reports,
+          ));
+        });
+
+        if (mounted) {
+          setState(() {
+            _allPins = pins;
+            _isLoadingReports = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = result['message'] ?? 'Failed to load reports';
+            _isLoadingReports = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading reports: $e';
+          _isLoadingReports = false;
+        });
+      }
+    }
+  }
+
+  /// Get category color
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'road damage':
+        return AppColors.mapRed;
+      case 'water leakage':
+        return AppColors.mapBlue;
+      case 'garbage':
+        return AppColors.mapOrange;
+      case 'streetlight':
+        return AppColors.mapPurple;
+      case 'drainage':
+        return AppColors.mapGreen;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  /// Get user's current location
+  Future<void> _getUserLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      
+      if (mounted) {
+        setState(() {
+          _userLocation = LatLng(position.latitude, position.longitude);
+        });
+        
+        // Move map to user location
+        _mapController.move(_userLocation!, 14.0);
+      }
+    } catch (e) {
+      // Silently fail - location is optional
+      debugPrint('Error getting location: $e');
+    }
   }
 
   void _onSearchChanged(String query) {
@@ -98,6 +239,136 @@ class _MapScreenState extends State<MapScreen> {
     _searchFocus.unfocus();
     setState(() { _showResults = false; _searchResults = []; });
     _mapController.move(result.latLng, 15.0);
+  }
+
+  void _showPinDetails(_ReportPin pin) {
+    _mapController.move(pin.location, 16.0);
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: pin.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  pin.category,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: pin.color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${pin.count} ${pin.count == 1 ? 'Report' : 'Reports'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: pin.color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Location: ${pin.location.latitude.toStringAsFixed(6)}, ${pin.location.longitude.toStringAsFixed(6)}',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (pin.reports.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text(
+                'Recent Reports:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...pin.reports.take(3).map((report) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(top: 6),
+                      decoration: BoxDecoration(
+                        color: pin.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        report['title'] ?? report['description'] ?? 'No description',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
+                ),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _clearSearch() {
@@ -215,27 +486,72 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(children: [
         FlutterMap(
           mapController: _mapController,
-          options: const MapOptions(
-            initialCenter: LatLng(9.0100, 38.7636),
+          options: MapOptions(
+            initialCenter: _userLocation ?? const LatLng(9.0100, 38.7636),
             initialZoom: 13.5, minZoom: 3.0, maxZoom: 19.0,
           ),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.cirp.app', maxZoom: 19),
             MarkerLayer(
-              markers: _visiblePins.map((pin) => Marker(
-                point: pin.location, width: 44, height: 44,
-                child: GestureDetector(
-                  onTap: () => _mapController.move(pin.location, 15.0),
-                  child: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: pin.color, shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: pin.color.withValues(alpha: 0.45), blurRadius: 8, offset: const Offset(0, 3))]),
-                    child: Center(child: Text('${pin.count}',
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800))),
+              markers: [
+                // User location marker
+                if (_userLocation != null)
+                  Marker(
+                    point: _userLocation!,
+                    width: 40,
+                    height: 40,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          )
+                        ],
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 20),
+                    ),
                   ),
-                ),
-              )).toList(),
+                // Report markers
+                ..._visiblePins.map((pin) => Marker(
+                  point: pin.location,
+                  width: 44,
+                  height: 44,
+                  child: GestureDetector(
+                    onTap: () => _showPinDetails(pin),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: pin.color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: pin.color.withValues(alpha: 0.45),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${pin.count}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              ],
             ),
           ],
         ),
@@ -328,7 +644,18 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(height: 8),
             _FloatButton(icon: Icons.remove, onTap: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
             const SizedBox(height: 8),
-            _FloatButton(icon: Icons.my_location, onTap: () => _mapController.move(const LatLng(9.0100, 38.7636), 13.5)),
+            _FloatButton(
+              icon: Icons.my_location,
+              onTap: () {
+                if (_userLocation != null) {
+                  _mapController.move(_userLocation!, 15.0);
+                } else {
+                  _getUserLocation();
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            _FloatButton(icon: Icons.refresh, onTap: _loadReports),
           ]),
         ),
         Positioned(
@@ -351,6 +678,85 @@ class _MapScreenState extends State<MapScreen> {
             ]),
           ),
         ),
+        // Loading indicator
+        if (_isLoadingReports)
+          Positioned(
+            top: 80,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Loading reports...',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Error message
+        if (_errorMessage != null && !_isLoadingReports)
+          Positioned(
+            top: 80,
+            left: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.red.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                    onPressed: () => setState(() => _errorMessage = null),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ]),
     );
   }
@@ -361,7 +767,15 @@ class _ReportPin {
   final String category;
   final int count;
   final Color color;
-  const _ReportPin({required this.location, required this.category, required this.count, required this.color});
+  final List<dynamic> reports;
+  
+  const _ReportPin({
+    required this.location,
+    required this.category,
+    required this.count,
+    required this.color,
+    this.reports = const [],
+  });
 }
 
 class _SearchResult {
