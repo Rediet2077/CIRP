@@ -4,6 +4,7 @@ import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/status_badge.dart';
 import 'package:cirp/core/services/api_service.dart';
+import 'package:cirp/core/constants/api_constants.dart';
 
 class ReportDetailsScreen extends StatefulWidget {
   final Map<String, dynamic>? report;
@@ -123,7 +124,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         if (f.startsWith('http') || f.startsWith('data:')) {
           photoUrl = f;
         } else {
-          photoUrl = 'http://localhost:8000${f.startsWith('/') ? '' : '/'}$f';
+          photoUrl = '${ApiConstants.baseUrl}${f.startsWith('/') ? '' : '/'}$f';
         }
       }
     }

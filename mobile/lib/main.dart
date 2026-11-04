@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -44,6 +45,19 @@ class CirpApp extends StatelessWidget {
               Locale('or'),
               Locale('ti'),
             ],
+            // On web, show the app in a phone-sized column (max 430px wide)
+            builder: (context, child) {
+              if (!kIsWeb) return child ?? const SizedBox.shrink();
+              return ColoredBox(
+                color: const Color(0xFFE5E7EB),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 430),
+                    child: ClipRect(child: child),
+                  ),
+                ),
+              );
+            },
             routes: AppRoutes.routes,
             onGenerateRoute: AppRoutes.onGenerateRoute,
             home: const SplashScreen(),

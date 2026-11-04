@@ -9,7 +9,8 @@ class ApiConstants {
   // Use _localBaseUrl for iOS Simulator, Chrome, Windows, macOS
   // Use _androidEmulatorBaseUrl for Android Emulator
   // Use _physicalDeviceBaseUrl for physical devices (phone)
-  static const String baseUrl = _physicalDeviceBaseUrl; // Using physical device IP
+  // Override at build time: flutter build web --dart-define=API_BASE_URL=https://your-backend.onrender.com
+  static const String baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: _physicalDeviceBaseUrl);
   
   // API Version
   static const String apiVersion = '/api';

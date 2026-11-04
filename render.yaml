@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: cirp-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DB_PATH
+        value: ./database/cirp.db
+      - key: CORS_ORIGIN
+        value: https://rediet2077.github.io
+      - key: EMAIL_SERVICE
+        value: gmail
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASS
+        sync: false
+
+  - type: web
+    name: cirp-admin
+    runtime: node
+    rootDir: admin_page
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
