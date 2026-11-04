@@ -84,7 +84,6 @@ Thumbs.db
 /*.bat
 /*.ps1
 /*.txt
-/*.mp4
 /device
 /*_*.md
 !/API_REFERENCE.md
