@@ -2,6 +2,7 @@ services:
   - type: web
     name: cirp-backend
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -27,6 +28,7 @@ services:
   - type: web
     name: cirp-admin
     runtime: node
+    plan: free
     rootDir: admin_page
     buildCommand: npm install && npm run build
     startCommand: npm start
