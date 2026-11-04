@@ -345,4 +345,16 @@ class AppLocalizationsOr extends AppLocalizations {
 
   @override
   String get catOther => 'Kan biroo';
+
+  @override
+  String get clearAllNotifications => 'Beeksisa Hunda Haqi';
+
+  @override
+  String get clearAllNotificationsConfirm => 'Beeksisa hunda haquu barbaaddaa? Gocha kun deebisuu hin danda\'amu.';
+
+  @override
+  String get clearAll => 'Hunda Haqi';
+
+  @override
+  String get allNotificationsCleared => 'Beeksisni hundi haqame';
 }

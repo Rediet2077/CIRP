@@ -4,8 +4,8 @@ class ApiConfig {
   static const String computerIp = 'localhost';
   
   // API URLs
-  static const String baseUrl = 'http://$computerIp:3002';
-  static const String aiServiceUrl = 'http://$computerIp:3002';
+  static const String baseUrl = 'http://$computerIp:8000';
+  static const String aiServiceUrl = 'http://$computerIp:8001';
   
   // API Endpoints
   static const String apiVersion = '/api/v1';

@@ -4,9 +4,7 @@ import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/features/language/language_provider.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/custom_text_field.dart';
-import 'package:cirp/core/services/auth_service.dart';
 import 'package:cirp/core/services/api_service.dart';
-import 'package:cirp/features/auth/screens/otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -48,86 +46,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-      final fullName = _nameController.text.trim();
-      final phoneNumber = _phoneController.text.trim();
-
-      // Step 1: Register user (creates account with is_email_verified=false)
-      final registerResult = await AuthService.register(
-        email: email,
-        password: password,
-        fullName: fullName,
-        phoneNumber: phoneNumber,
-      );
-      
-      if (!mounted) return;
-      
-      if (registerResult['success'] != true) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(registerResult['message'] ?? 'Registration failed'),
-            backgroundColor: AppColors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-        return;
-      }
-
-      // Step 2: Send OTP to email
-      final otpResult = await ApiService.sendOTP(
-        email: email,
-        fullName: fullName,
-        purpose: 'registration',
+      // Call backend API to register
+      final response = await ApiService.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        fullName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
       );
       
       setState(() => _isLoading = false);
       
       if (!mounted) return;
       
-      if (otpResult['success'] == true) {
-        // Navigate to OTP verification screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OTPVerificationScreen(
-              email: email,
-              fullName: fullName,
-            ),
+      // Debug: Print the response
+      print('📱 Registration response: $response');
+      print('📱 requiresVerification value: ${response['data']?['requiresVerification']}');
+      
+      if (response['success'] == true) {
+        // Always navigate to OTP screen for new registrations
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please check your email for OTP.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
+        
+        Navigator.pushNamed(
+          context,
+          '/otp-screen',
+          arguments: {
+            'email': _emailController.text.trim(),
+            'fullName': _nameController.text.trim(),
+          },
+        );
       } else {
-        // OTP sending failed - show error but account is created
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              otpResult['message'] ?? 'Failed to send OTP. Please try again.',
-            ),
-            backgroundColor: AppColors.orange,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Retry',
-              textColor: Colors.white,
-              onPressed: () async {
-                final retry = await ApiService.sendOTP(
-                  email: email,
-                  fullName: fullName,
-                  purpose: 'registration',
-                );
-                if (retry['success'] == true && mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OTPVerificationScreen(
-                        email: email,
-                        fullName: fullName,
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
+            content: Text(response['message'] ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -138,8 +96,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Registration error: $e'),
-          backgroundColor: AppColors.red,
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
       );

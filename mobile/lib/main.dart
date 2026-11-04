@@ -7,8 +7,14 @@ import 'features/splash/splash_screen.dart';
 import 'features/language/language_provider.dart';
 import 'generated/app_localizations.dart';
 import 'core/localization/fallback_material_localizations.dart';
+import 'core/services/auth_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize global AuthService to keep token in memory
+  await AuthService().initialize();
+  
   runApp(const CirpApp());
 }
 
@@ -39,6 +45,7 @@ class CirpApp extends StatelessWidget {
               Locale('ti'),
             ],
             routes: AppRoutes.routes,
+            onGenerateRoute: AppRoutes.onGenerateRoute,
             home: const SplashScreen(),
           );
         },

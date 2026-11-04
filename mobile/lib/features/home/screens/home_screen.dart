@@ -5,8 +5,6 @@ import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/features/reports/screens/report_details_screen.dart';
 import 'package:cirp/shared/widgets/status_badge.dart';
-import 'package:cirp/core/storage/local_auth_service.dart';
-import 'package:cirp/core/storage/local_reports_service.dart';
 import 'package:cirp/core/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,23 +29,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      // Get current user from SharedPreferences (stored during login)
       final prefs = await SharedPreferences.getInstance();
       final userName = prefs.getString('user_name') ?? 'User';
-      final userEmail = prefs.getString('user_email') ?? '';
       
       String formattedName = userName;
       if (formattedName.contains(' ')) {
         formattedName = formattedName.split(' ').first;
       }
 
-      // Get recent reports from API - fetch all and take first 3
-      final reportsResult = await ApiService.getMyReports(page: 1);
+      // Fetch recent reports from API
+      final result = await ApiService.getMyReports(page: 1);
+      
       List<dynamic> reports = [];
-      if (reportsResult['success'] == true) {
-        final allReports = reportsResult['data'] ?? [];
-        // Take only the 3 most recent reports
-        reports = allReports.take(3).toList();
+      if (result['success'] == true) {
+        reports = (result['data'] ?? []).take(3).toList(); // Get only last 3 reports
       }
       
       setState(() {
@@ -61,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           {'id': 5, 'name': 'Drainage'},
           {'id': 6, 'name': 'Other'},
         ];
-        _unreadNotifications = 0; // Will be updated with real notifications later
+        _unreadNotifications = 0; // Mock notification count
         _isLoading = false;
       });
     } catch (e) {
@@ -232,17 +227,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: Color(0xFFF5F5F5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
             'Report Category',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Color(0xFF212121),
             ),
@@ -251,11 +247,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text(
             'Select the type of issue',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: Color(0xFF9E9E9E),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildCategoryGrid(),
         ],
       ),
@@ -320,9 +316,9 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.1, // Increased more to make cards even shorter
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1.0,
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -335,61 +331,57 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: {'category': {'name': category['name']}},
           ),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Asymmetric padding
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: category['bgColor'] as Color,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Icon
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: category['iconBg'] as Color,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
                     child: Text(
                       category['icon'] as String,
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 15),
                     ),
                   ),
                 ),
-                // Title - with constrained height
-                SizedBox(
-                  height: 21, // Reduced from 22 to eliminate final 0.7px
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      category['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF212121),
-                        height: 1.0, // Minimum line height
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.visible,
-                    ),
+                const Spacer(),
+                // Title
+                Text(
+                  category['name'] as String,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF212121),
+                    height: 1.0,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
                 // Arrow button
                 Align(
                   alignment: Alignment.centerRight,
                   child: Container(
-                    width: 18,
-                    height: 18,
+                    width: 16,
+                    height: 16,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Icon(
                       Icons.arrow_forward,
-                      size: 11,
+                      size: 10,
                       color: category['arrowColor'] as Color,
                     ),
                   ),

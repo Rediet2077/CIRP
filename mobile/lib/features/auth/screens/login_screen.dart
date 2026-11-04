@@ -5,10 +5,11 @@ import 'package:cirp/core/theme/app_colors.dart';
 import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/cirp_logo.dart';
-import 'package:cirp/core/services/auth_service.dart';
 import 'package:cirp/core/services/api_service.dart';
-import 'package:cirp/core/storage/token_storage.dart';
-import 'package:cirp/features/auth/screens/otp_verification_screen.dart';
+import 'package:cirp/core/services/auth_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:cirp/core/constants/api_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,112 +39,70 @@ class _LoginScreenState extends State<LoginScreen> {
     
     try {
       // Call backend API to login
-      final result = await AuthService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      final response = await http.post(
+        Uri.parse('${ApiConstants.apiBaseUrl}/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
       
-      if (result['success'] == true) {
-        // Extract token - check multiple possible locations
-        String token = '';
-        if (result['tokens'] != null && result['tokens']['token'] != null) {
-          token = result['tokens']['token'];
-        } else if (result['user'] != null && result['user']['token'] != null) {
-          token = result['user']['token'];
-        } else if (result['token'] != null) {
-          token = result['token'];
-        } else if (result['access'] != null) {
-          token = result['access'];
-        }
+      setState(() => _isLoading = false);
+      
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Save token to both SharedPreferences and AuthService
+        final token = data['token'] ?? data['access'] ?? '';
+        final refreshToken = data['refresh'] ?? '';
         
-        if (token.isNotEmpty) {
-          // Save token
-          await TokenStorage.saveTokens(token, token);
-          
-          // Save user info
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('is_logged_in', true);
-          await prefs.setString('access_token', token);
-          
-          final user = result['user'] ?? {};
-          if (user['email'] != null) {
-            await prefs.setString('user_email', user['email']);
-          }
-          if (user['full_name'] != null) {
-            await prefs.setString('user_name', user['full_name']);
-          }
-        }
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
+        await prefs.setString('user_id', data['user']?['id'] ?? '');
+        await prefs.setString('user_email', data['user']?['email'] ?? '');
+        await prefs.setString('user_name', data['user']?['full_name'] ?? '');
+        await prefs.setString('user_role', data['user']?['role'] ?? '');
         
-        setState(() => _isLoading = false);
-        
-        if (!mounted) return;
+        // Save to global AuthService for camera lifecycle persistence
+        await AuthService().saveToken(token, refreshToken);
         
         // Navigate to home
         Navigator.pushReplacementNamed(context, AppRoutes.home);
-      } else {
-        setState(() => _isLoading = false);
-        
-        if (!mounted) return;
-        
-        // Check if email verification is required
-        if (result['requiresVerification'] == true && result['email'] != null) {
-          // Show dialog to resend OTP
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Email Not Verified'),
-              content: Text(
-                'Your email is not verified yet. Would you like to resend the verification code?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx); // Close dialog
-                    
-                    // Send OTP
-                    final otpResult = await ApiService.sendOTP(
-                      email: result['email'],
-                      fullName: 'User',
-                      purpose: 'registration',
-                    );
-                    
-                    if (otpResult['success'] == true && mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OTPVerificationScreen(
-                            email: result['email'],
-                            fullName: 'User',
-                          ),
-                        ),
-                      );
-                    } else if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(otpResult['message'] ?? 'Failed to send OTP'),
-                          backgroundColor: AppColors.red,
-                        ),
-                      );
-                    }
+      } else if (response.statusCode == 403 && data['requiresVerification'] == true) {
+        // Email not verified
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Please verify your email first'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Verify',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/otp-screen',
+                  arguments: {
+                    'email': _emailController.text.trim(),
+                    'fullName': '',
                   },
-                  child: const Text('Verify Now'),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Login failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Invalid email or password'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -152,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('Network error: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

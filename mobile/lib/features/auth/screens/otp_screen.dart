@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/core/routes/app_routes.dart';
-import 'package:cirp/core/services/email_service.dart';
+import 'package:cirp/core/services/api_service.dart';
 import 'package:cirp/generated/app_localizations.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -55,29 +55,35 @@ class _OtpScreenState extends State<OtpScreen> {
       _errorMessage = '';
     });
 
-    _currentOtp = EmailService.generateOtp();
+    try {
+      final result = await ApiService.sendOTP(
+        email: widget.email,
+        purpose: 'registration',
+      );
 
-    final result = await EmailService.sendOtp(
-      toEmail: widget.email,
-      otp: _currentOtp,
-    );
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    if (result.success) {
-      setState(() {
-        _isSending = false;
-        _otpSent = true;
-      });
-      _startCountdown();
-      _showSnack('Verification code sent to ${widget.email}',
-          success: true);
-    } else {
+      if (result['success'] == true) {
+        setState(() {
+          _isSending = false;
+          _otpSent = true;
+        });
+        _startCountdown();
+        _showSnack('Verification code sent to ${widget.email}',
+            success: true);
+      } else {
+        setState(() {
+          _isSending = false;
+          _hasError = true;
+          _errorMessage = result['message'] ?? 'Could not send OTP';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSending = false;
         _hasError = true;
-        _errorMessage =
-            'Could not send email: ${result.message}';
+        _errorMessage = 'Network error: $e';
       });
     }
   }
@@ -163,28 +169,43 @@ class _OtpScreenState extends State<OtpScreen> {
       _errorMessage = '';
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
+    try {
+      final result = await ApiService.verifyOTP(
+        email: widget.email,
+        otpCode: _otpValue,
+        purpose: 'registration',
+      );
 
-    if (_otpValue != _currentOtp) {
+      if (!mounted) return;
+
+      if (result['verified'] == true) {
+        setState(() {
+          _isVerifying = false;
+          _verified = true;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.login);
+        }
+      } else {
+        setState(() {
+          _isVerifying = false;
+          _hasError = true;
+          _errorMessage = result['message'] ?? l10n.invalidOtp;
+        });
+        for (final c in _controllers) c.clear();
+        _focusNodes[0].requestFocus();
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isVerifying = false;
         _hasError = true;
-        _errorMessage = l10n.invalidOtp;
+        _errorMessage = 'Network error: $e';
       });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
-      return;
-    }
-
-    setState(() {
-      _isVerifying = false;
-      _verified = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
     }
   }
 
@@ -302,17 +323,29 @@ class _OtpScreenState extends State<OtpScreen> {
                 else ...[
                   GestureDetector(
                     onLongPress: _handlePaste,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(_otpLength, (i) {
-                        return _OtpBox(
-                          controller: _controllers[i],
-                          focusNode: _focusNodes[i],
-                          hasError: _hasError,
-                          onChanged: (v) => _onDigitChanged(v, i),
-                          onKeyEvent: (e) => _onKeyEvent(e, i),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final availableWidth = constraints.maxWidth;
+                        // Calculate with aggressive safety margins
+                        final totalSpacing = 35.0; // Total horizontal spacing/padding
+                        final boxWidth = ((availableWidth - totalSpacing) / _otpLength).clamp(32.0, 44.0);
+                        final spacing = 3.0; // Fixed small spacing
+                        
+                        return Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: spacing,
+                          children: List.generate(_otpLength, (i) {
+                            return _OtpBox(
+                              controller: _controllers[i],
+                              focusNode: _focusNodes[i],
+                              hasError: _hasError,
+                              onChanged: (v) => _onDigitChanged(v, i),
+                              onKeyEvent: (e) => _onKeyEvent(e, i),
+                              width: boxWidth,
+                            );
+                          }),
                         );
-                      }),
+                      },
                     ),
                   ),
                   AnimatedContainer(
@@ -422,6 +455,7 @@ class _OtpBox extends StatelessWidget {
   final bool hasError;
   final ValueChanged<String> onChanged;
   final ValueChanged<KeyEvent> onKeyEvent;
+  final double width;
 
   const _OtpBox({
     required this.controller,
@@ -429,15 +463,15 @@ class _OtpBox extends StatelessWidget {
     required this.hasError,
     required this.onChanged,
     required this.onKeyEvent,
+    this.width = 46,
   });
 
   @override
   Widget build(BuildContext context) {
     final isFilled = controller.text.isNotEmpty;
     return Container(
-      width: 46,
+      width: width,
       height: 56,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: hasError
             ? AppColors.red.withValues(alpha: 0.06)

@@ -755,6 +755,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get catOther;
+
+  /// No description provided for @clearAllNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Notifications'**
+  String get clearAllNotifications;
+
+  /// No description provided for @clearAllNotificationsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete all notifications? This action cannot be undone.'**
+  String get clearAllNotificationsConfirm;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get clearAll;
+
+  /// No description provided for @allNotificationsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications cleared'**
+  String get allNotificationsCleared;
 }
 
 class _AppLocalizationsDelegate

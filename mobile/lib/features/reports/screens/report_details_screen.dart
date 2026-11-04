@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/generated/app_localizations.dart';
@@ -36,7 +37,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     if (_reportData == null) {
       setState(() => _isLoading = true);
     }
-    final result = await ApiService.getReportDetails(id);
+    final result = await ApiService.getReportDetails(int.parse(id));
     if (mounted && result['success'] == true && result['data'] != null) {
       setState(() {
         _reportData = result['data'];

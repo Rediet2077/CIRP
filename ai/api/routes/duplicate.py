@@ -13,11 +13,34 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "duplicat
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from classifier import detect_duplicate
 
 router = APIRouter(tags=["Duplicate Detection"])
+
+
+class ReportData(BaseModel):
+    """Report data structure."""
+    id: Optional[str] = None
+    title: str
+    description: str
+    category: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    image: Optional[str] = None
+
+
+class BatchDuplicateRequest(BaseModel):
+    """What backend Node.js sends - one new report vs array of existing."""
+    new_report: ReportData
+    existing_reports: List[ReportData]
+
+
+class BatchDuplicateResponse(BaseModel):
+    """What we return to backend."""
+    has_potential_duplicate: bool
+    similar_reports: List[Dict[str, Any]]
 
 
 class DuplicateRequest(BaseModel):
@@ -51,12 +74,91 @@ class DuplicateResponse(BaseModel):
 
 @router.post(
     "/detect-duplicate/",
+    response_model=BatchDuplicateResponse,
+    summary="Detect duplicate infrastructure reports (batch)",
+)
+async def detect_duplicate_batch(request: BatchDuplicateRequest):
+    """
+    POST /ai/detect-duplicate/
+
+    Compare a new report against multiple existing reports.
+    Returns list of similar reports with scores.
+
+    Example response:
+    {
+        "has_potential_duplicate": true,
+        "similar_reports": [
+            {
+                "id": "abc-123",
+                "title": "Pothole on Main St",
+                "similarity_score": 0.92,
+                "breakdown": {
+                    "text": {"score": 0.88},
+                    "location": {"score": 0.95},
+                    "category": {"score": 1.00}
+                }
+            }
+        ]
+    }
+    """
+    try:
+        similar_reports = []
+        threshold = 0.75  # 75% similarity threshold
+        
+        for existing in request.existing_reports:
+            # Compare new report vs this existing report
+            result = detect_duplicate(
+                new_title=request.new_report.title,
+                new_description=request.new_report.description,
+                new_category=request.new_report.category,
+                new_lat=request.new_report.latitude,
+                new_lon=request.new_report.longitude,
+                new_image=None,  # Images not included yet
+
+                existing_title=existing.title,
+                existing_description=existing.description,
+                existing_category=existing.category,
+                existing_lat=existing.latitude,
+                existing_lon=existing.longitude,
+                existing_image=None,
+
+                existing_report_id=0,  # Not used in this flow
+            )
+            
+            # If similarity above threshold, add to results
+            if result["similarity_score"] >= threshold:
+                similar_reports.append({
+                    "id": existing.id,
+                    "title": existing.title,
+                    "similarity_score": result["similarity_score"],
+                    "breakdown": result["breakdown"]
+                })
+        
+        # Sort by similarity score (highest first)
+        similar_reports.sort(key=lambda x: x["similarity_score"], reverse=True)
+        
+        return BatchDuplicateResponse(
+            has_potential_duplicate=len(similar_reports) > 0,
+            similar_reports=similar_reports[:5]  # Return top 5 matches
+        )
+
+    except Exception as e:
+        print(f"❌ Duplicate detection error: {e}")
+        # Return no duplicates on error instead of failing
+        return BatchDuplicateResponse(
+            has_potential_duplicate=False,
+            similar_reports=[]
+        )
+
+
+@router.post(
+    "/detect-duplicate-single/",
     response_model=DuplicateResponse,
-    summary="Detect duplicate infrastructure reports",
+    summary="Detect duplicate (single comparison)",
 )
 async def detect_duplicate_endpoint(request: DuplicateRequest):
     """
-    POST /ai/detect-duplicate/
+    POST /ai/detect-duplicate-single/
 
     Compare a new report against one existing report.
     Returns whether they describe the same infrastructure problem.
@@ -139,3 +241,4 @@ async def detect_duplicate_endpoint(request: DuplicateRequest):
             status_code=500,
             detail=f"Duplicate detection failed: {str(e)}"
         )
+

@@ -1,96 +1,136 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../constants/api_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+/// Global authentication service that persists token across app lifecycle
+/// This singleton keeps token in memory even when camera activity opens
 class AuthService {
-  /// Register a new user
-  static Future<Map<String, dynamic>> register({
-    required String email,
-    required String password,
-    required String fullName,
-    String? phoneNumber,
-  }) async {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
+  // Keep token in memory (survives app pause)
+  String? _cachedToken;
+  String? _cachedRefreshToken;
+
+  /// Initialize auth service and load token
+  Future<void> initialize() async {
+    await _loadTokenFromStorage();
+  }
+
+  /// Load token from SharedPreferences into memory cache
+  Future<void> _loadTokenFromStorage() async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.registerUrl),
-        headers: ApiConstants.headers,
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'full_name': fullName,
-          'phone_number': phoneNumber ?? '',
-        }),
-      ).timeout(ApiConstants.connectTimeout);
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return {
-          'success': data['success'] ?? true,
-          'message': data['message'] ?? 'Registration successful',
-          'user': data['user'],
-          'requiresVerification': data['requiresVerification'] ?? false,
-        };
-      } else {
-        return {
-          'success': false,
-          'message': data['message'] ?? data['error'] ?? 'Registration failed',
-          'errors': data['errors'],
-        };
-      }
+      final prefs = await SharedPreferences.getInstance();
+      _cachedToken = prefs.getString('access_token');
+      _cachedRefreshToken = prefs.getString('refresh_token');
+      print('🔐 AuthService: Token loaded into memory cache');
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Network error: $e',
-      };
+      print('❌ AuthService: Error loading token: $e');
     }
   }
 
-  /// Login user
-  static Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) async {
+  /// Save token to both memory cache and storage
+  Future<void> saveToken(String accessToken, String refreshToken) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.loginUrl),
-        headers: ApiConstants.headers,
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(ApiConstants.connectTimeout);
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        // Backend returns: {success, message, token, user: {id, email, full_name, role}}
-        return {
-          'success': data['success'] ?? true,
-          'message': data['message'] ?? 'Login successful',
-          'token': data['token'] ?? data['access'] ?? '',
-          'user': data['user'],
-        };
-      } else if (response.statusCode == 403) {
-        // Email not verified
-        return {
-          'success': false,
-          'message': data['message'] ?? 'Email not verified',
-          'requiresVerification': data['requiresVerification'] ?? false,
-          'email': data['email'],
-        };
-      } else {
-        return {
-          'success': false,
-          'message': data['message'] ?? data['error'] ?? 'Login failed',
-          'errors': data['errors'],
-        };
-      }
+      // Save to memory cache first
+      _cachedToken = accessToken;
+      _cachedRefreshToken = refreshToken;
+      
+      // Then persist to storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', accessToken);
+      await prefs.setString('refresh_token', refreshToken);
+      
+      print('✅ AuthService: Token saved to memory and storage');
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Network error: $e',
-      };
+      print('❌ AuthService: Error saving token: $e');
     }
   }
+
+  /// Get access token (from memory cache or storage)
+  Future<String?> getAccessToken() async {
+    // Try memory cache first (fastest and survives app pause)
+    if (_cachedToken != null && _cachedToken!.isNotEmpty) {
+      print('✅ AuthService: Token from memory cache');
+      return _cachedToken;
+    }
+
+    // Fallback to storage
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      if (token != null && token.isNotEmpty) {
+        _cachedToken = token; // Update cache
+        print('✅ AuthService: Token from storage, cached');
+        return token;
+      }
+    } catch (e) {
+      print('❌ AuthService: Error reading token: $e');
+    }
+
+    print('❌ AuthService: No token available');
+    return null;
+  }
+
+  /// Get refresh token
+  Future<String?> getRefreshToken() async {
+    if (_cachedRefreshToken != null && _cachedRefreshToken!.isNotEmpty) {
+      return _cachedRefreshToken;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('refresh_token');
+      if (token != null) {
+        _cachedRefreshToken = token;
+        return token;
+      }
+    } catch (e) {
+      print('❌ AuthService: Error reading refresh token: $e');
+    }
+
+    return null;
+  }
+
+  /// Check if user is authenticated
+  Future<bool> isAuthenticated() async {
+    final token = await getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Clear token from memory and storage
+  Future<void> clearToken() async {
+    _cachedToken = null;
+    _cachedRefreshToken = null;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('refresh_token');
+      print('✅ AuthService: Token cleared');
+    } catch (e) {
+      print('❌ AuthService: Error clearing token: $e');
+    }
+  }
+
+  /// Restore token after app lifecycle change (e.g., camera activity)
+  Future<void> restoreToken() async {
+    if (_cachedToken != null && _cachedToken!.isNotEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', _cachedToken!);
+        if (_cachedRefreshToken != null) {
+          await prefs.setString('refresh_token', _cachedRefreshToken!);
+        }
+        print('✅ AuthService: Token restored to storage from memory');
+      } catch (e) {
+        print('❌ AuthService: Error restoring token: $e');
+      }
+    }
+  }
+
+  /// Get cached token directly (for quick checks)
+  String? get cachedToken => _cachedToken;
+
+  /// Check if token exists in memory cache
+  bool get hasTokenInCache => _cachedToken != null && _cachedToken!.isNotEmpty;
 }

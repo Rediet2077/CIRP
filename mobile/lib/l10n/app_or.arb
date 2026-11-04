@@ -120,5 +120,10 @@
   "catGarbage": "Kosii",
   "catStreetlight": "Ifa Karaa",
   "catDrainage": "Qulqullina Bishaani",
-  "catOther": "Kan biroo"
+  "catOther": "Kan biroo",
+
+  "clearAllNotifications": "Beeksisa Hunda Haqi",
+  "clearAllNotificationsConfirm": "Beeksisa hunda haquu barbaaddaa? Gocha kun deebisuu hin danda'amu.",
+  "clearAll": "Hunda Haqi",
+  "allNotificationsCleared": "Beeksisni hundi haqame"
 }

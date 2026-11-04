@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/routes/app_routes.dart';
 import '../auth/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -24,13 +27,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
     _controller.forward();
     
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
-    });
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    
+    // Check if user is authenticated
+    final isAuthenticated = await AuthService().isAuthenticated();
+    
+    print('🔐 Splash: isAuthenticated = $isAuthenticated');
+    
+    if (isAuthenticated) {
+      // User is logged in, go to home
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } else {
+      // No auth, go to login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   @override
