@@ -4,7 +4,7 @@ import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/features/language/language_provider.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/custom_text_field.dart';
-import 'package:cirp/core/storage/local_auth_service.dart';
+import 'package:cirp/core/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -46,8 +46,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Call local storage service to register
-      final result = await LocalAuthService.signup(
+      // Call backend API to register
+      final response = await ApiService.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
@@ -58,14 +58,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
       
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful! Please login.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      Navigator.pop(context);
+      // Debug: Print the response
+      print('📱 Registration response: $response');
+      print('📱 requiresVerification value: ${response['data']?['requiresVerification']}');
+      
+      if (response['success'] == true) {
+        // Always navigate to OTP screen for new registrations
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please check your email for OTP.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        
+        Navigator.pushNamed(
+          context,
+          '/otp-screen',
+          arguments: {
+            'email': _emailController.text.trim(),
+            'fullName': _nameController.text.trim(),
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       

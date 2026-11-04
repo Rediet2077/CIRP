@@ -341,4 +341,16 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get catOther => 'ሌላ';
+
+  @override
+  String get clearAllNotifications => 'ሁሉንም ማሳወቂያዎች ያጽዱ';
+
+  @override
+  String get clearAllNotificationsConfirm => 'ሁሉንም ማሳወቂያዎች መሰረዝ ይፈልጋሉ? ይህ ድርጊት መልሰው ማድረግ አይቻልም።';
+
+  @override
+  String get clearAll => 'ሁሉንም አጽዳ';
+
+  @override
+  String get allNotificationsCleared => 'ሁሉም ማሳወቂያዎች ተጽድተዋል';
 }

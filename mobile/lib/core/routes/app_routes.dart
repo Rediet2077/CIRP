@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cirp/features/auth/screens/login_screen.dart';
 import 'package:cirp/features/auth/screens/register_screen.dart';
+import 'package:cirp/features/auth/screens/otp_screen.dart';
 import 'package:cirp/features/reports/screens/report_details_screen.dart';
 import 'package:cirp/features/reports/screens/report_problem_screen.dart';
 import 'package:cirp/features/notifications/screens/notifications_screen.dart';
@@ -30,4 +31,16 @@ class AppRoutes {
         notifications: (context) => const NotificationsScreen(),
         profile: (context) => const MainShell(initialIndex: 4),
       };
+
+  static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    if (settings.name == '/otp-screen') {
+      final args = settings.arguments as Map<String, dynamic>?;
+      final email = args?['email'] as String? ?? '';
+      return MaterialPageRoute(
+        builder: (context) => OtpScreen(email: email),
+        settings: settings,
+      );
+    }
+    return null;
+  }
 }

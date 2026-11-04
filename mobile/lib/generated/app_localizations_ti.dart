@@ -341,4 +341,16 @@ class AppLocalizationsTi extends AppLocalizations {
 
   @override
   String get catOther => 'ካልእ';
+
+  @override
+  String get clearAllNotifications => 'ኩሉ ምልክታት ኣጽርዮም';
+
+  @override
+  String get clearAllNotificationsConfirm => 'ኩሉ ምልክታት ክትሰርዞም ትደሊ ዲኻ? እዚ ተግባር ክምለስ ኣይክእልን።';
+
+  @override
+  String get clearAll => 'ኩሉ ኣጽርዮም';
+
+  @override
+  String get allNotificationsCleared => 'ኩሉ ምልክታት ተጸሪዮም';
 }

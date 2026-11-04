@@ -5,8 +5,7 @@ import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/features/reports/screens/report_details_screen.dart';
 import 'package:cirp/shared/widgets/status_badge.dart';
-import 'package:cirp/core/storage/local_auth_service.dart';
-import 'package:cirp/core/storage/local_reports_service.dart';
+import 'package:cirp/core/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,28 +29,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      // Get current user from local storage
-      final currentUser = await LocalAuthService.getCurrentUser();
+      final prefs = await SharedPreferences.getInstance();
+      final userName = prefs.getString('user_name') ?? 'User';
       
-      String formattedName = currentUser?['full_name'] ?? 'User';
+      String formattedName = userName;
       if (formattedName.contains(' ')) {
         formattedName = formattedName.split(' ').first;
       }
 
-      // Get recent reports from local storage
-      final userId = currentUser?['id'] ?? '1';
-      final reports = await LocalReportsService.getRecentReports(userId);
+      // Fetch recent reports from API
+      final result = await ApiService.getMyReports(page: 1);
+      
+      List<dynamic> reports = [];
+      if (result['success'] == true) {
+        reports = (result['data'] ?? []).take(3).toList(); // Get only last 3 reports
+      }
       
       setState(() {
         _userName = formattedName;
-        _recentReports = reports.map((r) => {
-          'id': r['id'],
-          'title': r['description']?.toString().split('\n').first ?? 'Untitled',
-          'status': r['status'],
-          'category': {'name': r['category']},
-          'address': r['location'],
-          'created_at': r['created_at'],
-        }).toList();
+        _recentReports = reports;
         _categories = [
           {'id': 1, 'name': 'Road Damage'},
           {'id': 2, 'name': 'Water Leakage'},
@@ -231,17 +227,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoriesSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: Color(0xFFF5F5F5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
             'Report Category',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Color(0xFF212121),
             ),
@@ -250,11 +247,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text(
             'Select the type of issue',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: Color(0xFF9E9E9E),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildCategoryGrid(),
         ],
       ),
@@ -319,9 +316,9 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.85,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1.0,
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -334,26 +331,27 @@ class _HomeScreenState extends State<HomeScreen> {
             arguments: {'category': {'name': category['name']}},
           ),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: category['bgColor'] as Color,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Icon
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: category['iconBg'] as Color,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
                     child: Text(
                       category['icon'] as String,
-                      style: const TextStyle(fontSize: 22),
+                      style: const TextStyle(fontSize: 15),
                     ),
                   ),
                 ),
@@ -362,28 +360,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   category['name'] as String,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF212121),
-                    height: 1.2,
+                    height: 1.0,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 1),
                 // Arrow button
                 Align(
                   alignment: Alignment.centerRight,
                   child: Container(
-                    width: 24,
-                    height: 24,
+                    width: 16,
+                    height: 16,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Icon(
                       Icons.arrow_forward,
-                      size: 14,
+                      size: 10,
                       color: category['arrowColor'] as Color,
                     ),
                   ),

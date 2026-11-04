@@ -120,5 +120,10 @@
   "catGarbage": "ጓሓፍ",
   "catStreetlight": "መብራት ጎደና",
   "catDrainage": "ጎዶቦ ማይ",
-  "catOther": "ካልእ"
+  "catOther": "ካልእ",
+
+  "clearAllNotifications": "ኩሉ ምልክታት ኣጽርዮም",
+  "clearAllNotificationsConfirm": "ኩሉ ምልክታት ክትሰርዞም ትደሊ ዲኻ? እዚ ተግባር ክምለስ ኣይክእልን።",
+  "clearAll": "ኩሉ ኣጽርዮም",
+  "allNotificationsCleared": "ኩሉ ምልክታት ተጸሪዮም"
 }

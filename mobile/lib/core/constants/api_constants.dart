@@ -3,16 +3,16 @@ class ApiConstants {
   // Base URLs
   static const String _localBaseUrl = 'http://localhost:43213';
   static const String _androidEmulatorBaseUrl = 'http://10.0.2.2:8000';
-  static const String _physicalDeviceBaseUrl = 'http://192.168.0.109:8000'; // Your PC IP
+  static const String _physicalDeviceBaseUrl = 'http://localhost:3002'; // Using ADB reverse for USB connection
   
   // Change this based on your device
   // Use _localBaseUrl for iOS Simulator, Chrome, Windows, macOS
   // Use _androidEmulatorBaseUrl for Android Emulator
   // Use _physicalDeviceBaseUrl for physical devices (phone)
-  static const String baseUrl = _localBaseUrl; // Using localhost with USB adb reverse
+  static const String baseUrl = _physicalDeviceBaseUrl; // Using physical device IP
   
   // API Version
-  static const String apiVersion = '/api/v1';
+  static const String apiVersion = '/api';
   
   // Full API Base URL
   static String get apiBaseUrl => '$baseUrl$apiVersion';
@@ -62,6 +62,6 @@ class ApiConstants {
   };
   
   // Timeouts
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration connectTimeout = Duration(seconds: 60); // Email delivery can take time
+  static const Duration receiveTimeout = Duration(seconds: 60);
 }

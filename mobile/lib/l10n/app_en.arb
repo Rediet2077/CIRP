@@ -135,5 +135,10 @@
   "catGarbage": "Garbage",
   "catStreetlight": "Streetlight",
   "catDrainage": "Drainage",
-  "catOther": "Other"
+  "catOther": "Other",
+
+  "clearAllNotifications": "Clear All Notifications",
+  "clearAllNotificationsConfirm": "Are you sure you want to delete all notifications? This action cannot be undone.",
+  "clearAll": "Clear All",
+  "allNotificationsCleared": "All notifications cleared"
 }

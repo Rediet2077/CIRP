@@ -120,5 +120,10 @@
   "catGarbage": "ቆሻሻ",
   "catStreetlight": "የጎዳና መብራት",
   "catDrainage": "ፍሳሽ",
-  "catOther": "ሌላ"
+  "catOther": "ሌላ",
+
+  "clearAllNotifications": "ሁሉንም ማሳወቂያዎች ያጽዱ",
+  "clearAllNotificationsConfirm": "ሁሉንም ማሳወቂያዎች መሰረዝ ይፈልጋሉ? ይህ ድርጊት መልሰው ማድረግ አይቻልም።",
+  "clearAll": "ሁሉንም አጽዳ",
+  "allNotificationsCleared": "ሁሉም ማሳወቂያዎች ተጽድተዋል"
 }

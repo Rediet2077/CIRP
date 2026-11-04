@@ -31,23 +31,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Load from storage first
     final prefs = await SharedPreferences.getInstance();
-    final firstName = (prefs.getString('user_first_name') ?? '').trim();
-    final lastName = (prefs.getString('user_last_name') ?? '').trim();
+    final userName = (prefs.getString('user_name') ?? '').trim();
     final email = prefs.getString('user_email') ?? '';
     
-    String formattedName = 'User';
-    if (firstName.isNotEmpty) {
-      if (lastName.isEmpty || lastName.toLowerCase() == firstName.toLowerCase()) {
-        formattedName = firstName;
-      } else {
-        formattedName = '$firstName $lastName';
-      }
-    } else if (lastName.isNotEmpty) {
-      formattedName = lastName;
-    }
-
     setState(() {
-      _userName = formattedName;
+      _userName = userName.isNotEmpty ? userName : 'User';
       _userEmail = email;
     });
     
@@ -57,13 +45,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       if (result['success'] == true) {
         final user = result['data'];
-        _userName = '${user['first_name']} ${user['last_name']}'.trim();
+        final fullName = user['full_name'] ?? '${user['first_name']} ${user['last_name']}'.trim();
+        _userName = fullName.isNotEmpty ? fullName : 'User';
         _userEmail = user['email'] ?? '';
         _userPhone = user['phone_number'] ?? '';
         
         // Update storage
-        prefs.setString('user_first_name', user['first_name'] ?? '');
-        prefs.setString('user_last_name', user['last_name'] ?? '');
+        prefs.setString('user_name', fullName);
         prefs.setString('user_email', user['email'] ?? '');
       }
       _isLoading = false;
@@ -168,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _MenuItem(icon: Icons.notifications_outlined, label: l10n.notifications,
             onTap: () => Navigator.pushNamed(context, AppRoutes.notifications)),
         _divider(),
-        _MenuItem(icon: Icons.clear_all_outlined, label: 'Clear All Notifications',
+        _MenuItem(icon: Icons.clear_all_outlined, label: l10n.clearAllNotifications,
             iconColor: AppColors.orange,
             onTap: () => _showClearAllNotifications(context, l10n)),
         _divider(),
@@ -299,47 +287,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Consumer<LanguageProvider>(
         builder: (ctx, lp, _) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 20),
-              Text(l10n.selectLanguage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-              const SizedBox(height: 16),
-              ...lp.languageOptions.map((lang) {
-                final isSelected = lp.languageCode == lang['code'];
-                return GestureDetector(
-                  onTap: () { lp.setLanguage(lang['code']!); Navigator.pop(ctx); },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isSelected ? AppColors.primary : AppColors.divider, width: isSelected ? 1.8 : 1),
-                    ),
-                    child: Row(children: [
-                      Container(
-                        width: 32, height: 32,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                        child: Center(child: Text(lang['icon'] ?? '',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
-                                color: isSelected ? AppColors.white : AppColors.primary))),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Center(child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 20),
+                Text(l10n.selectLanguage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                const SizedBox(height: 16),
+                ...lp.languageOptions.map((lang) {
+                  final isSelected = lp.languageCode == lang['code'];
+                  return GestureDetector(
+                    onTap: () { lp.setLanguage(lang['code']!); Navigator.pop(ctx); },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isSelected ? AppColors.primary : AppColors.divider, width: isSelected ? 1.8 : 1),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(child: Text(lang['name']!,
-                          style: TextStyle(fontSize: 15, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                              color: isSelected ? AppColors.primary : AppColors.textPrimary))),
-                      if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
-                    ]),
-                  ),
-                );
-              }),
-            ]),
+                      child: Row(children: [
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Center(child: Text(lang['icon'] ?? '',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                                  color: isSelected ? AppColors.white : AppColors.primary))),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(child: Text(lang['name']!,
+                            style: TextStyle(fontSize: 15, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                                color: isSelected ? AppColors.primary : AppColors.textPrimary))),
+                        if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                      ]),
+                    ),
+                  );
+                }),
+              ]),
+            ),
           ),
         ),
       ),
@@ -367,9 +357,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear All Notifications',
-            style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.orange)),
-        content: const Text('Are you sure you want to delete all notifications? This action cannot be undone.'),
+        title: Text(l10n.clearAllNotifications,
+            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.orange)),
+        content: Text(l10n.clearAllNotificationsConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -384,11 +374,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (ctx.mounted) {
                 if (result['success'] == true) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('All notifications cleared'),
+                    SnackBar(
+                      content: Text(l10n.allNotificationsCleared),
                       backgroundColor: AppColors.green,
                       behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.all(16),
+                      margin: const EdgeInsets.all(16),
                     ),
                   );
                 } else {
@@ -407,7 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: AppColors.orange,
               minimumSize: const Size(80, 40),
             ),
-            child: const Text('Clear All'),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),

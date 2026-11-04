@@ -5,7 +5,11 @@ import 'package:cirp/core/theme/app_colors.dart';
 import 'package:cirp/core/routes/app_routes.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/shared/widgets/cirp_logo.dart';
-import 'package:cirp/core/storage/local_auth_service.dart';
+import 'package:cirp/core/services/api_service.dart';
+import 'package:cirp/core/services/auth_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:cirp/core/constants/api_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,18 +38,72 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Call local storage service to login
-      final result = await LocalAuthService.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+      // Call backend API to login
+      final response = await http.post(
+        Uri.parse('${ApiConstants.apiBaseUrl}/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
       
       setState(() => _isLoading = false);
       
       if (!mounted) return;
-      
-      // Navigate to home
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Save token to both SharedPreferences and AuthService
+        final token = data['token'] ?? data['access'] ?? '';
+        final refreshToken = data['refresh'] ?? '';
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
+        await prefs.setString('user_id', data['user']?['id'] ?? '');
+        await prefs.setString('user_email', data['user']?['email'] ?? '');
+        await prefs.setString('user_name', data['user']?['full_name'] ?? '');
+        await prefs.setString('user_role', data['user']?['role'] ?? '');
+        
+        // Save to global AuthService for camera lifecycle persistence
+        await AuthService().saveToken(token, refreshToken);
+        
+        // Navigate to home
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      } else if (response.statusCode == 403 && data['requiresVerification'] == true) {
+        // Email not verified
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Please verify your email first'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Verify',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/otp-screen',
+                  arguments: {
+                    'email': _emailController.text.trim(),
+                    'fullName': '',
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Invalid email or password'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       
@@ -53,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text('Network error: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/generated/app_localizations.dart';
 import 'package:cirp/features/location/screens/location_picker_screen.dart';
 import 'package:cirp/core/services/api_service.dart';
+import 'package:cirp/core/services/auth_service.dart';
 
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({super.key});
@@ -19,7 +21,7 @@ class ReportProblemScreen extends StatefulWidget {
   State<ReportProblemScreen> createState() => _ReportProblemScreenState();
 }
 
-class _ReportProblemScreenState extends State<ReportProblemScreen> {
+class _ReportProblemScreenState extends State<ReportProblemScreen> with WidgetsBindingObserver {
   int _currentStep = 0;
 
   LatLng _pickedLatLng = const LatLng(9.0054, 38.7636);
@@ -36,20 +38,79 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   XFile? _pickedImage;
   Uint8List? _pickedImageBytes;
   final ImagePicker _picker = ImagePicker();
+  
+  // Store image path to restore after camera lifecycle
+  String? _savedImagePath;
+  
+  // Use global AuthService for token management
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadTokenAndRestoreImage();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    print('📱 App lifecycle state changed to: $state');
+    
+    // When app resumes after camera, restore token and image
+    if (state == AppLifecycleState.resumed) {
+      _authService.restoreToken(); // Restore token from memory cache
+      _loadTokenAndRestoreImage();
+    }
+  }
+
+  Future<void> _loadTokenAndRestoreImage() async {
+    try {
+      // Restore image if path was saved
+      if (_savedImagePath != null && _pickedImage == null) {
+        final file = File(_savedImagePath!);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _pickedImage = XFile(_savedImagePath!);
+              _pickedImageBytes = bytes;
+            });
+            print('✅ Image restored after camera: $_savedImagePath');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error restoring state: $e');
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
+      print('📸 Starting image picker: ${source == ImageSource.camera ? "CAMERA" : "GALLERY"}');
+      
       final img = await _picker.pickImage(
         source: source, imageQuality: 85, maxWidth: 1920, maxHeight: 1920,
       );
+      
       if (img != null) {
+        print('✅ Image picked successfully: ${img.path}');
         final bytes = await img.readAsBytes();
-        setState(() {
-          _pickedImage = img;
-          _pickedImageBytes = bytes;
-        });
+        print('✅ Image bytes read: ${bytes.length} bytes');
+        
+        if (mounted) {
+          setState(() {
+            _pickedImage = img;
+            _pickedImageBytes = bytes;
+            _savedImagePath = img.path; // Save path for restoration
+          });
+          print('✅ Image state updated in UI');
+        }
+      } else {
+        print('❌ No image selected (user cancelled)');
       }
     } catch (e) {
+      print('❌ Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not pick image: $e'),
@@ -91,6 +152,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _descController.dispose();
     _notesController.dispose();
     _previewMap.dispose();
@@ -126,6 +188,27 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   Future<void> _submitReport() async {
     final l10n = AppLocalizations.of(context);
     
+    print('🚀 Starting report submission...');
+    
+    // Check authentication using AuthService
+    String? token = await _authService.getAccessToken();
+    
+    print('🔑 Token check: ${token == null || token.isEmpty ? "EMPTY" : "EXISTS (${token.substring(0, 20)}...)"}');
+    
+    if (token == null || token.isEmpty) {
+      print('❌ No token found - redirecting to login');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session expired. Please login again.'),
+            backgroundColor: AppColors.red,
+          ),
+        );
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      }
+      return;
+    }
+    
     // Show loading
     showDialog(
       context: context,
@@ -145,15 +228,15 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       }
     }
     
-    // Get category name and UUID
-    final categories = ['Road Damage', 'Water & Sewage', 'Garbage', 'Streetlight', 'Drainage', 'Other'];
+    // Get category name and UUID (from actual database)
+    final categories = ['Road Damage', 'Water Leakage', 'Garbage', 'Streetlight', 'Drainage', 'Other'];
     final categoryUUIDs = [
-      'd5029881-2d3a-4add-817d-1c48614d39ee', // Road Damage
-      '5e850149-14bd-45b5-a7bf-7aa83dfe97da', // Water Supply
-      '576d6b9f-d2b5-4569-91f4-a9c7cf56be60', // Garbage
-      '3ffaed57-c384-4a22-8c06-a9817e176de8', // Streetlight
-      '9d84109c-e4df-463d-83ae-d8c31d4ab7e0', // Drainage
-      '64940c79-479c-4784-ab44-e7b8c0a3c777', // Other
+      '771ed052-e3f0-4709-bf8c-30cf532751d8', // Road Damage -> Public Works
+      'c0810993-eba1-4649-bab3-759c52b5b6b6', // Water Leakage -> Water & Sewage
+      '01393c0f-6bff-44ac-9533-7cdbeae21a4e', // Garbage -> Sanitation
+      'aeac7e07-736a-46ac-a8d4-e8d95ddc8138', // Streetlight -> Electrical Services
+      'ca7060f8-52d7-478b-9a46-da95eb3ac224', // Drainage -> Water & Sewage
+      '0964f75b-4375-4986-803a-1a2bfaf2dd7e', // Other -> Public Works
     ];
     final categoryName = categories[_selectedCategory];
     final categoryId = categoryUUIDs[_selectedCategory % categoryUUIDs.length];
@@ -163,6 +246,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     String priority = 'MEDIUM';
     if (_severityIndex == 0) priority = 'LOW';
     if (_severityIndex == 2) priority = 'HIGH';
+    
+    print('🚀 Submitting report with category_id: $categoryId');
     
     // Create report
     final result = await ApiService.createReport(
@@ -184,12 +269,29 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       if (result['success'] == true) {
         _showSuccess();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Failed to submit report'),
-            backgroundColor: AppColors.red,
-          ),
-        );
+        final errorMsg = result['message'] ?? 'Failed to submit report';
+        print('❌ Report submission failed: $errorMsg');
+        
+        // If auth error, redirect to login
+        if (errorMsg.toLowerCase().contains('unauthorized') || 
+            errorMsg.toLowerCase().contains('token') ||
+            errorMsg.toLowerCase().contains('authentication')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session expired. Please login again.'),
+              backgroundColor: AppColors.red,
+            ),
+          );
+          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: AppColors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
@@ -485,32 +587,42 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   borderRadius: BorderRadius.circular(16),
                   child: Stack(fit: StackFit.expand, children: [
                     Container(color: Colors.black87),
-                    const Center(child: Icon(Icons.camera_alt_outlined, color: Colors.white38, size: 64)),
+                    const Center(child: Icon(Icons.photo_library_outlined, color: Colors.white38, size: 64)),
                     Positioned(bottom: 0, left: 0, right: 0, child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
                       ),
-                      child: Text(l10n.photoInstruction, textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontSize: 13)),
+                      child: const Text('Select a photo from your gallery', textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white, fontSize: 13)),
                     )),
                   ]),
                 ),
         ),
+        const SizedBox(height: 16),
+        // Warning about camera
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.yellow.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: AppColors.yellow, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Take photo with your phone camera first, then select from gallery here',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+              ),
+            ),
+          ]),
+        ),
         const SizedBox(height: 24),
-        _PhotoActionButton(icon: Icons.camera_alt_outlined, label: l10n.camera,
-            onTap: () => _pickImage(ImageSource.camera), primary: true),
-        const SizedBox(height: 12),
-        Row(children: [
-          const Expanded(child: Divider(color: AppColors.divider)),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Text(l10n.or, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
-          const Expanded(child: Divider(color: AppColors.divider)),
-        ]),
-        const SizedBox(height: 12),
-        _PhotoActionButton(icon: Icons.photo_library_outlined, label: l10n.gallery,
-            onTap: () => _pickImage(ImageSource.gallery), primary: false),
+        _PhotoActionButton(icon: Icons.photo_library_outlined, label: 'Select from Gallery',
+            onTap: () => _pickImage(ImageSource.gallery), primary: true),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(14),
@@ -523,11 +635,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             Row(children: [
               const Icon(Icons.lightbulb_outline, color: AppColors.primary, size: 18),
               const SizedBox(width: 6),
-              const Text('Tips', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+              const Text('Photo Tips', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
             ]),
             const SizedBox(height: 8),
-            _tipRow('Take clear photos of the problem'),
-            _tipRow('Make sure the area is visible'),
+            _tipRow('Take clear photos showing the problem'),
+            _tipRow('Make sure the area is well-lit'),
+            _tipRow('Include landmarks for location reference'),
           ]),
         ),
       ]),

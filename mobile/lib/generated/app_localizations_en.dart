@@ -343,4 +343,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catOther => 'Other';
+
+  @override
+  String get clearAllNotifications => 'Clear All Notifications';
+
+  @override
+  String get clearAllNotificationsConfirm => 'Are you sure you want to delete all notifications? This action cannot be undone.';
+
+  @override
+  String get clearAll => 'Clear All';
+
+  @override
+  String get allNotificationsCleared => 'All notifications cleared';
 }

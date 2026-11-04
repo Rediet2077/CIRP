@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════
+   SIMPLE LOGIN INSTRUCTIONS
+═══════════════════════════════════════════════════════
+
+YOU ARE CURRENTLY AT:
+   http://localhost:3000/dashboard ← Wrong!
+
+YOU NEED TO GO TO:
+   http://localhost:3000 ← Root URL
+
+═══════════════════════════════════════════════════════
+
+📝 STEPS TO LOGIN:
+
+1. Click on the address bar in your browser
+   (where it shows localhost:3000/dashboard)
+
+2. Delete /dashboard from the end
+   So it shows just: localhost:3000
+
+3. Press ENTER
+
+4. You should see the LOGIN PAGE
+
+5. Enter:
+   Email:    admin@cirp.com
+   Password: Test@123
+
+6. Click LOGIN button
+
+7. You'll be redirected to /dashboard
+   WITH authentication this time!
+
+═══════════════════════════════════════════════════════
+
+🔄 ALTERNATIVE METHOD:
+
+Just type this in a NEW TAB:
+   http://localhost:3000
+
+═══════════════════════════════════════════════════════
+
+✅ AFTER LOGIN:
+   - No more 401 errors
+   - Dashboard shows data
+   - Everything works!
+
+═══════════════════════════════════════════════════════
+
+⚠️ WHY YOU'RE SEEING 401 ERRORS:
+   - You went directly to /dashboard
+   - You haven't logged in yet
+   - No authentication token stored
+   - Backend correctly rejects unauthorized requests
+
+✅ THIS IS EXPECTED BEHAVIOR!
+   The system is working correctly by requiring login.
+
+═══════════════════════════════════════════════════════
+
+🎯 JUST GO TO: http://localhost:3000
+   (Remove /dashboard from the URL)
+
+═══════════════════════════════════════════════════════

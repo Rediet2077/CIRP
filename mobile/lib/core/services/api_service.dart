@@ -4,6 +4,159 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
 class ApiService {
+  /// Register new user
+  static Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String fullName,
+    required String phoneNumber,
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      final body = jsonEncode({
+        'email': email,
+        'password': password,
+        'full_name': fullName,
+        'phone_number': phoneNumber,
+      });
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.apiBaseUrl}/auth/register'),
+        headers: headers,
+        body: body,
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Registration successful',
+          'data': data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Registration failed',
+        };
+      }
+    } catch (e) {
+      final msg = e.toString().contains('TimeoutException')
+          ? 'Server is taking too long. Please check your connection and try again.'
+          : 'Network error: $e';
+      return {
+        'success': false,
+        'message': msg,
+      };
+    }
+  }
+
+  /// Send OTP to email
+  static Future<Map<String, dynamic>> sendOTP({
+    required String email,
+    String purpose = 'registration',
+    String? fullName,
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      final body = jsonEncode({
+        'email': email,
+        'purpose': purpose,
+        if (fullName != null) 'full_name': fullName,
+      });
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.apiBaseUrl}/otp/send'),
+        headers: headers,
+        body: body,
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'OTP sent successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to send OTP',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  /// Verify OTP
+  static Future<Map<String, dynamic>> verifyOTP({
+    required String email,
+    required String otpCode,
+    String purpose = 'registration',
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      final body = jsonEncode({
+        'email': email,
+        'otp_code': otpCode,
+        'purpose': purpose,
+      });
+
+      final response = await http.post(
+        Uri.parse('${ApiConstants.apiBaseUrl}/otp/verify'),
+        headers: headers,
+        body: body,
+      ).timeout(ApiConstants.connectTimeout);
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'OTP verified successfully',
+          'verified': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Invalid OTP',
+          'verified': false,
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'verified': false,
+      };
+    }
+  }
+
+  /// Resend OTP
+  static Future<Map<String, dynamic>> resendOTP({
+    required String email,
+    String purpose = 'registration',
+    String? fullName,
+  }) async {
+    return sendOTP(email: email, purpose: purpose, fullName: fullName);
+  }
+
   /// Get authorization headers with token
   static Future<Map<String, String>> _getAuthHeaders() async {
     final prefs = await SharedPreferences.getInstance();

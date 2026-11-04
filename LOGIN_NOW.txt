@@ -1,0 +1,45 @@
+=======================================
+QUICK LOGIN - WORKING ACCOUNTS
+=======================================
+
+ACCOUNT 1 - VERIFIED ✅
+Email: redietsharew231@gmail.com
+Password: (your password)
+Status: VERIFIED - Can login NOW
+
+ACCOUNT 2 - JUST VERIFIED ✅
+Email: tsedonia91@gmail.com
+Password: (your password)
+Status: JUST VERIFIED - Can login NOW
+
+=======================================
+WHAT I FIXED (2 minutes ago):
+=======================================
+
+1. ✅ Enabled USB port forwarding
+   Command: adb reverse tcp:3002 tcp:3002
+   Now phone can reach backend via localhost
+
+2. ✅ Changed app to use localhost:3002
+   No need for WiFi IP anymore
+
+3. ✅ Verified tsedonia91@gmail.com
+   Was: is_email_verified = 0 ❌
+   Now: is_email_verified = 1 ✅
+
+4. ✅ Restarting mobile app with new config
+
+=======================================
+TRY LOGIN NOW:
+=======================================
+
+1. Wait 30 seconds for app to restart
+2. Open CIRP app on phone
+3. Use EITHER account above
+4. Should login successfully!
+
+=======================================
+IF STILL NOT WORKING:
+=======================================
+
+Tell me exact error message you see
