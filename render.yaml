@@ -22,7 +22,7 @@ services:
         value: gmail
       - key: EMAIL_USER
         sync: false
-      - key: EMAIL_APP_PASS
+      - key: EMAIL_APP_PASSWORD
         sync: false
 
   - type: web

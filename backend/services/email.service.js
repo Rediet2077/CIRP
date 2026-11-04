@@ -7,9 +7,43 @@ class EmailService {
       service: process.env.EMAIL_SERVICE || 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD,
+        pass: process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_APP_PASS,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
+  }
+
+  /**
+   * Send a mail. Uses the Brevo HTTPS API when BREVO_API_KEY is set
+   * (hosts such as Render's free tier block outgoing SMTP), otherwise SMTP.
+   */
+  async sendMail(mailOptions) {
+    if (!process.env.BREVO_API_KEY) {
+      return this.transporter.sendMail(mailOptions);
+    }
+    const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: process.env.EMAIL_FROM_NAME || 'CIRP', email: senderEmail },
+        to: [{ email: mailOptions.to }],
+        subject: mailOptions.subject,
+        htmlContent: mailOptions.html,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || `Brevo API error ${response.status}`);
+    }
+    return { messageId: data.messageId };
   }
 
   /**
@@ -94,7 +128,7 @@ CIRP - Community Infrastructure Reporting Platform
     };
 
     try {
-      const info = await this.transporter.sendMail(mailOptions);
+      const info = await this.sendMail(mailOptions);
       console.log('✅ OTP email sent successfully:', info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
@@ -153,7 +187,7 @@ CIRP - Community Infrastructure Reporting Platform
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      await this.sendMail(mailOptions);
       console.log('✅ Welcome email sent successfully');
     } catch (error) {
       console.error('❌ Failed to send welcome email:', error);
