@@ -79,3 +79,17 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Local helper scripts, notes and media
+/*.bat
+/*.ps1
+/*.txt
+/*.mp4
+/device
+/*_*.md
+!/API_REFERENCE.md
+!/SETUP_MOBILE_APP.md
+backend/*.bat
+mobile/*.bat
+mobile/*.ps1
+mobile/temp_reload.txt
