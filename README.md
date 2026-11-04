@@ -6,6 +6,16 @@ https://github.com/Rediet2077/CIRP
 ## 2. Video Presentation (5 minutes, with voice-over)
 [Watch the demo video](video_2026-10-28_10-46-41.mp4)
 
+## Live Demo
+
+| Part | Link |
+|---|---|
+| Mobile web app (phone-sized) | https://rediet2077.github.io/CIRP/ |
+| Admin dashboard | https://cirp-admin.onrender.com |
+| Backend API | https://cirp-backend-tdj7.onrender.com |
+
+The backend and admin run on a free hosting plan, so the first load after inactivity can take about 50 seconds.
+
 ## 3. Project Information
 
 **Purpose:** CIRP helps citizens report infrastructure problems in their community and helps municipal authorities assign, track and resolve them, improving communication, accountability and transparency.
