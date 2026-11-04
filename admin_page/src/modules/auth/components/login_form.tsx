@@ -22,8 +22,6 @@ import { Input } from "@/ui/input";
 import { Alert, AlertDescription } from "@/ui/alert";
 import { LockKeyIcon, EnvelopeSimpleIcon, WarningCircleIcon, CircleNotchIcon, EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { useLogin } from "../hooks/create/use_login";
-import { DemoAccountSwitcher } from "./subcomponents/demo_account_switcher";
-import { DEMO_PASSWORD, DemoAccountPreset } from "../types/auth_types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "../types/auth_schemas";
@@ -40,24 +38,14 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "admin@cirp.com",
-      password: "Test@123",
+      email: "",
+      password: "",
     },
   });
-
-  const watchEmail = watch("email");
-
-  const handleSelectPreset = (preset: DemoAccountPreset) => {
-    setValue("email", preset.email);
-    setValue("password", preset.demo_password);
-    setFormError(null);
-  };
 
   const onSubmit = (data: LoginFormData) => {
     setFormError(null);
@@ -168,11 +156,6 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </Field>
             </FieldGroup>
           </form>
-
-          <DemoAccountSwitcher
-            onSelectPreset={handleSelectPreset}
-            selectedEmail={watchEmail}
-          />
 
           <div className="text-center pt-1 border-t border-border">
             <FieldDescription className="text-sm text-muted-foreground">
