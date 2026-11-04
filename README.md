@@ -35,5 +35,5 @@ See `SETUP_MOBILE_APP.md` and `API_REFERENCE.md` for setup and API details.
 |---|---|---|
 | 1 | Rediet Sharew | CTC 573-26 |
 | 2 | Rediet Asfer | CTC 3755-26 |
-| 3 | Meron | CTC 380-26 |
-| 4 | Meron | CTC 354-26 |
+| 3 | Meron Amare | CTC 380-26 |
+| 4 | Meron Alemayehu | CTC 354-26 |
