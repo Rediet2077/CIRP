@@ -2,9 +2,17 @@ import { createFetch } from "@better-fetch/fetch";
 import { z } from "zod";
 import { localStorageService } from "./local_storage";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? window.location.origin + "/api" : "/api");
+// The backend serves everything under /api; add it if the env var only has the host.
+function withApiPrefix(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return /\/api$/.test(trimmed) ? trimmed : `${trimmed}/api`;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  ? withApiPrefix(process.env.NEXT_PUBLIC_API_URL)
+  : typeof window !== "undefined"
+    ? window.location.origin + "/api"
+    : "/api";
 
 interface AuthSession {
   access: string;
