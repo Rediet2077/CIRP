@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cirp/core/theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../core/config/api_config.dart';
@@ -254,7 +255,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 color: isActive ? Colors.white : Colors.grey[600],
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-              ),
+              ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             ),
           ),
         ),
@@ -265,7 +266,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             fontSize: 12,
             color: isActive ? AppColors.primary : Colors.grey[600],
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
+          ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
         ),
       ],
     );
@@ -293,7 +294,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -302,7 +303,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.grey[600],
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -369,7 +370,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -378,7 +379,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.grey[600],
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           if (_generatedOtp != null) ...[
@@ -396,7 +397,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.amber[900],
-                ),
+                ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -411,7 +412,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               letterSpacing: 8,
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             decoration: InputDecoration(
               labelText: 'OTP Code',
               hintText: '000000',
@@ -494,7 +495,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -503,7 +504,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.grey[600],
-            ),
+            ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),

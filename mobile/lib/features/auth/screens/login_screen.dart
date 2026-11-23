@@ -120,6 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -189,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   // Email Field
                   Text(
-                    'Email',
+                    l10n.emailAddress,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -225,7 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   // Password Field
                   Text(
-                    'Password',
+                    l10n.password,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -282,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Forgot Password?',
+                        l10n.forgotPassword,
                         style: TextStyle(
                           color: AppColors.primary,
                           fontSize: 14,
@@ -316,9 +317,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Login',
-                              style: TextStyle(
+                          : Text(
+                              l10n.logIn,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5,
@@ -333,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        l10n.noAccount,
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -342,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       GestureDetector(
                         onTap: () => Navigator.pushNamed(context, AppRoutes.register),
                         child: Text(
-                          'Register',
+                          l10n.signUp,
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.primary,

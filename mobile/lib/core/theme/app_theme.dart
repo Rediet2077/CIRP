@@ -5,9 +5,13 @@ import 'app_colors.dart';
 export 'app_colors.dart';
 
 class AppTheme {
+  /// Used when the main font lacks a glyph (Amharic, Tigrinya).
+  static const List<String> ethiopicFallback = ['NotoSansEthiopic'];
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      fontFamilyFallback: ethiopicFallback,
       colorScheme: ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
@@ -16,7 +20,7 @@ class AppTheme {
         surface: AppColors.surface,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: GoogleFonts.interTextTheme(),
+      textTheme: GoogleFonts.interTextTheme().apply(fontFamilyFallback: ethiopicFallback),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.textPrimary,
@@ -26,7 +30,7 @@ class AppTheme {
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
-        ),
+        ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -39,7 +43,7 @@ class AppTheme {
           textStyle: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-          ),
+          ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -53,7 +57,7 @@ class AppTheme {
           textStyle: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-          ),
+          ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

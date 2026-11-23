@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cirp/core/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/auth_service.dart';
@@ -108,7 +109,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                   letterSpacing: 2,
-                ),
+                ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
               ),
               const SizedBox(height: 8),
               // Tagline
@@ -119,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   fontSize: 16,
                   color: AppColors.textSecondary,
                   height: 1.5,
-                ),
+                ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
               ),
               const Spacer(),
               // Illustration
@@ -158,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     fontStyle: FontStyle.italic,
                     color: AppColors.textSecondary,
                     height: 1.5,
-                  ),
+                  ).copyWith(fontFamilyFallback: AppTheme.ethiopicFallback),
                 ),
               ),
             ],

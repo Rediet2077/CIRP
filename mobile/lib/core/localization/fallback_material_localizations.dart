@@ -16,10 +16,10 @@ class FallbackMaterialLocalizationsDelegate extends LocalizationsDelegate<Materi
   Future<MaterialLocalizations> load(Locale locale) async {
     // Tigrinya (ti) is not supported by GlobalMaterialLocalizations
     // For unsupported languages, fall back to English Material widgets
-    if (locale.languageCode == 'ti') {
-      return GlobalMaterialLocalizations.delegate.load(const Locale('en'));
+    if (!GlobalMaterialLocalizations.delegate.isSupported(locale)) {
+      return DefaultMaterialLocalizations.delegate.load(locale);
     }
-    
+
     // For all other languages (including or, am, en), use the built-in support
     return GlobalMaterialLocalizations.delegate.load(locale);
   }
@@ -38,10 +38,10 @@ class FallbackCupertinoLocalizationsDelegate extends LocalizationsDelegate<Cuper
   @override
   Future<CupertinoLocalizations> load(Locale locale) async {
     // Tigrinya (ti) is not supported
-    if (locale.languageCode == 'ti') {
-      return GlobalCupertinoLocalizations.delegate.load(const Locale('en'));
+    if (!GlobalCupertinoLocalizations.delegate.isSupported(locale)) {
+      return DefaultCupertinoLocalizations.delegate.load(locale);
     }
-    
+
     return GlobalCupertinoLocalizations.delegate.load(locale);
   }
 
@@ -58,6 +58,11 @@ class FallbackWidgetsLocalizationsDelegate extends LocalizationsDelegate<Widgets
 
   @override
   Future<WidgetsLocalizations> load(Locale locale) async {
+    // Tigrinya (ti) is not supported by GlobalWidgetsLocalizations; asking for it
+    // fails, which left the whole app stuck in English.
+    if (!GlobalWidgetsLocalizations.delegate.isSupported(locale)) {
+      return DefaultWidgetsLocalizations.delegate.load(locale);
+    }
     return GlobalWidgetsLocalizations.delegate.load(locale);
   }
 
