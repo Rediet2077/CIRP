@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "@/ui/button";
 import { FieldGroup } from "@/ui/field";
+import { useNavigationStore } from "@/modules/shared/store/navigation_store";
 import { useDepartmentList } from "@/modules/departments/hooks/list/use_department_list";
 import { useAddContractor } from "../../hooks/create/use_add_contractor";
 import { useForm, FormProvider } from "react-hook-form";
@@ -17,6 +18,11 @@ interface AddContractorFormProps {
 export function AddContractorForm({ onClose }: AddContractorFormProps) {
   const { data: departments } = useDepartmentList();
   const addContractorMutation = useAddContractor();
+  const { selectedDepartmentFilter, currentUserRole, activeOfficerDepartmentId } = useNavigationStore();
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  // Default to the officer's own department so the new person shows up in their list
+  const myDept = currentUserRole === "DEPARTMENT_ADMIN" ? activeOfficerDepartmentId : selectedDepartmentFilter;
+  const defaultDept = (myDept && myDept !== "all" ? myDept : departments?.[0]?.id) || "";
 
   const methods = useForm<AddContractorFormData>({
     resolver: zodResolver(addContractorSchema),
@@ -24,7 +30,7 @@ export function AddContractorForm({ onClose }: AddContractorFormProps) {
       name: "",
       phone: "+251 91 ",
       email: "",
-      department_id: "dept-elec",
+      department_id: defaultDept,
       is_contractor: false,
       contractor_company_name: "",
       license_number: "",
@@ -33,17 +39,24 @@ export function AddContractorForm({ onClose }: AddContractorFormProps) {
     } as any, // Temporary cast, form keys mismatch defaults slightly but form hook handles it
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, getValues, setValue } = methods;
+
+  // Departments may load after the form opens
+  React.useEffect(() => {
+    if (!getValues("department_id") && defaultDept) setValue("department_id", defaultDept);
+  }, [defaultDept, getValues, setValue]);
 
   const onSubmit = async (data: AddContractorFormData) => {
     const dept = departments?.find((d) => d.id === data.department_id);
 
+    setSubmitError(null);
+    try {
     await addContractorMutation.mutateAsync({
       name: data.name,
       phone_number: data.phone,
       email: data.email,
       department_id: data.department_id,
-      department_name: dept?.name || "Electricity Department",
+      department_name: dept?.name || "",
       role_type: data.is_contractor ? "CONTRACTOR_LEAD" : "FIELD_TECHNICIAN",
       position_title: data.position_title,
       specialization: data.specialization,
@@ -56,6 +69,9 @@ export function AddContractorForm({ onClose }: AddContractorFormProps) {
 
     onClose();
     reset();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Could not save. Please try again.");
+    }
   };
 
   return (
@@ -64,6 +80,10 @@ export function AddContractorForm({ onClose }: AddContractorFormProps) {
         <FieldGroup className="gap-3">
           <AddContractorFields />
         </FieldGroup>
+
+        {submitError && (
+          <p className="text-sm text-destructive" role="alert">{submitError}</p>
+        )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-border">
           <Button
