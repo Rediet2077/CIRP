@@ -23,7 +23,13 @@ export function AnalyticsView() {
 
   const assetList = assets || [];
   const taskList = tasks || [];
-  const deptList = departments || [];
+  // The seed data contains each department twice; show every name once
+  const deptList = Array.from(
+    new Map(
+      (departments || []).map((d) => [d.name, d] as const)
+    ).values()
+  );
+  const isSuperAdmin = currentUserRole !== "DEPARTMENT_ADMIN";
 
   const conditionCounts = {
     EXCELLENT: assetList.filter((a) => a.condition === "EXCELLENT").length,
@@ -69,7 +75,7 @@ export function AnalyticsView() {
         />
       </div>
 
-      <AnalyticsDeptBenchmarks departments={deptList} />
+      {isSuperAdmin && <AnalyticsDeptBenchmarks departments={deptList} />}
     </div>
   );
 }

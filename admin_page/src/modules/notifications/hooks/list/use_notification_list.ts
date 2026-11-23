@@ -7,6 +7,7 @@ export function useNotificationList(departmentId?: string) {
   return useQuery({
     queryKey: [...NOTIFICATION_LIST_QUERY_KEY, departmentId || "all"],
     queryFn: () => fetchNotificationList(departmentId),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 15,
+    refetchInterval: 1000 * 30,
   });
 }

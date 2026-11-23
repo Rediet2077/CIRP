@@ -6,6 +6,9 @@ import { useNavigationStore } from "@/modules/shared/store/navigation_store";
 import { NotificationsHeader } from "./notifications_header";
 import { NotificationsCards } from "./notifications_cards";
 import { NotificationsList } from "./notifications_list";
+import { useQueryClient } from "@tanstack/react-query";
+import { NOTIFICATION_LIST_QUERY_KEY } from "../hooks/list/notification_list";
+import { setNotificationsRead } from "../hooks/list/notification_read";
 import { NotificationRecord } from "../types/notification_types";
 
 export function NotificationsView() {
@@ -21,18 +24,34 @@ export function NotificationsView() {
       : selectedDepartmentFilter;
 
   const { data: notifications, isLoading } = useNotificationList(effectiveDept);
+  const queryClient = useQueryClient();
+  const save = (ids: string[], read: boolean) =>
+    setNotificationsRead(ids, read)
+      .then(() => queryClient.invalidateQueries({ queryKey: NOTIFICATION_LIST_QUERY_KEY }))
+      .catch(() => {});
   const [localList, setLocalList] = useState<NotificationRecord[] | null>(null);
+
+  // Newly fetched data replaces the local copy
+  React.useEffect(() => {
+    setLocalList(null);
+  }, [notifications]);
 
   const notificationList = localList || notifications || [];
 
+  // Show the change at once, then save it so it is still read after a refresh
   const handleMarkAllRead = () => {
+    const unreadIds = notificationList.filter((n) => !n.is_read).map((n) => n.id);
     setLocalList(notificationList.map((n) => ({ ...n, is_read: true })));
+    if (unreadIds.length > 0) save(unreadIds, true);
   };
 
   const handleToggleRead = (id: string) => {
+    const target = notificationList.find((n) => n.id === id);
+    if (!target) return;
     setLocalList(
       notificationList.map((n) => (n.id === id ? { ...n, is_read: !n.is_read } : n))
     );
+    save([id], !target.is_read);
   };
 
   if (isLoading && !localList) {
