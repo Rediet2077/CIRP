@@ -267,7 +267,7 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
 });
 
 // Verify and resolve task (and linked report)
-router.post('/:id/verify-resolve', authMiddleware, async (req, res) => {
+router.post('/:id/verify-resolve', authMiddleware, requireRole('admin', 'department_head'), async (req, res) => {
   try {
     const { id } = req.params;
     const { officerName, resolutionNotes } = req.body;
