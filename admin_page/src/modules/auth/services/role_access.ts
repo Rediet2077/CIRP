@@ -5,6 +5,7 @@ const SYSTEM_MANAGEMENT_PATHS = [
   "/dashboard/users",
   "/dashboard/settings",
   "/dashboard/audit-logs",
+  "/dashboard/register-asset",
 ];
 
 /** UI navigation policy only; API permissions must still be enforced by the backend. */

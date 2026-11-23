@@ -119,12 +119,14 @@ export function TopNavbar() {
         </Link>
 
         {/* Quick Action Button */}
-        <Link href="/dashboard/register-asset" className="hidden sm:block">
-          <Button size="sm" className="h-9 text-sm gap-1 font-medium">
-            <PlusIcon weight="bold" className="size-3.5" />
-            <span>New Asset</span>
-          </Button>
-        </Link>
+        {currentUserRole !== "DEPARTMENT_ADMIN" && (
+          <Link href="/dashboard/register-asset" className="hidden sm:block">
+            <Button size="sm" className="h-9 text-sm gap-1 font-medium">
+              <PlusIcon weight="bold" className="size-3.5" />
+              <span>New Asset</span>
+            </Button>
+          </Link>
+        )}
       </div>
     </header>
   );

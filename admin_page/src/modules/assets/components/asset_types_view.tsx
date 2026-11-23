@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Card } from "@/ui/card";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
+import { useNavigationStore } from "@/modules/shared/store/navigation_store";
 import { useAssetTypeList } from "../hooks/list/use_asset_type_list";
 
 export function AssetTypesView() {
+  const { currentUserRole } = useNavigationStore();
   const { data: assetTypes, isLoading } = useAssetTypeList();
 
   const types = assetTypes || [];
@@ -25,14 +27,16 @@ export function AssetTypesView() {
           </p>
         </div>
 
-        <Link href="/dashboard/register-asset">
-          <Button
-            size="sm"
-            className="h-9 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Register Asset In Category
-          </Button>
-        </Link>
+        {currentUserRole !== "DEPARTMENT_ADMIN" && (
+          <Link href="/dashboard/register-asset">
+            <Button
+              size="sm"
+              className="h-9 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Register Asset In Category
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Catalog Cards Grid */}

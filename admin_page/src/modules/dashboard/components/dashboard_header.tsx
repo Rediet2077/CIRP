@@ -37,11 +37,13 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <Link href="/dashboard/register-asset">
-          <Button variant="outline" size="sm" className="text-sm font-medium h-9">
-            Register Asset
-          </Button>
-        </Link>
+        {currentUserRole !== "DEPARTMENT_ADMIN" && (
+          <Link href="/dashboard/register-asset">
+            <Button variant="outline" size="sm" className="text-sm font-medium h-9">
+              Register Asset
+            </Button>
+          </Link>
+        )}
         <Link href="/dashboard/map">
           <Button variant="outline" size="sm" className="text-sm font-medium h-9">
             GIS Map

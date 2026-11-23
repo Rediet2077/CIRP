@@ -69,14 +69,16 @@ export function AssetsView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/register-asset">
-            <Button
-              size="sm"
-              className="text-sm font-medium h-9"
-            >
-              Register New Asset
-            </Button>
-          </Link>
+          {currentUserRole !== "DEPARTMENT_ADMIN" && (
+            <Link href="/dashboard/register-asset">
+              <Button
+                size="sm"
+                className="text-sm font-medium h-9"
+              >
+                Register New Asset
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

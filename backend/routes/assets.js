@@ -65,7 +65,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Register new asset
-router.post('/', authMiddleware, requireRole('admin', 'department_head'), async (req, res) => {
+router.post('/', authMiddleware, requireRole('admin'), async (req, res) => {
   try {
     const {
       asset_type_id,

@@ -60,15 +60,17 @@ export function MapView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/register-asset">
-            <Button
-              size="sm"
-              className="h-9 text-sm font-medium gap-1.5"
-            >
-              <PlusIcon weight="bold" className="size-3.5" />
-              <span>Register Asset</span>
-            </Button>
-          </Link>
+          {currentUserRole !== "DEPARTMENT_ADMIN" && (
+            <Link href="/dashboard/register-asset">
+              <Button
+                size="sm"
+                className="h-9 text-sm font-medium gap-1.5"
+              >
+                <PlusIcon weight="bold" className="size-3.5" />
+                <span>Register Asset</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
