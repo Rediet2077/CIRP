@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../core/config/api_config.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_colors.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -48,17 +48,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.passwordResetRequestEndpoint}'),
+        Uri.parse('${ApiConstants.apiBaseUrl}/otp/send'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': _emailController.text.trim()}),
-      );
+        body: jsonEncode({'email': _emailController.text.trim(), 'purpose': 'password_reset'}),
+      ).timeout(const Duration(seconds: 90));
 
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         // Store OTP if returned (for development)
         if (responseData['data'] != null && responseData['data']['otp'] != null) {
-          _generatedOtp = responseData['data']['otp'];
+          _generatedOtp = responseData['data']['otp'].toString();
         }
         
         if (mounted) {
@@ -94,55 +94,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
+  // The code is checked together with the new password in the last step
   Future<void> _verifyOtp() async {
     if (!_otpFormKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.passwordResetVerifyEndpoint}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailController.text.trim(),
-          'otp': _otpController.text.trim(),
-        }),
-      );
-
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (mounted) {
-          setState(() => _currentStep = 2);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseData['message'] ?? 'OTP verified'),
-              backgroundColor: AppColors.primary,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseData['message'] ?? 'Invalid OTP'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    setState(() => _currentStep = 2);
   }
 
   Future<void> _resetPassword() async {
@@ -152,15 +107,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.passwordResetConfirmEndpoint}'),
+        Uri.parse('${ApiConstants.apiBaseUrl}/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text.trim(),
-          'otp': _otpController.text.trim(),
+          'otp_code': _otpController.text.trim(),
           'new_password': _newPasswordController.text,
-          'confirm_password': _confirmPasswordController.text,
         }),
-      );
+      ).timeout(const Duration(seconds: 60));
 
       final responseData = jsonDecode(response.body);
 
@@ -184,6 +138,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               backgroundColor: Colors.red,
             ),
           );
+          if (response.statusCode == 400) setState(() => _currentStep = 1);
         }
       }
     } catch (e) {

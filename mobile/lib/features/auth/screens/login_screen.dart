@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cirp/features/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cirp/core/theme/app_theme.dart';
 import 'package:cirp/core/theme/app_colors.dart';
@@ -276,7 +277,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      ),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: const Size(0, 0),

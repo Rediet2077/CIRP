@@ -305,6 +305,38 @@ router.put('/profile', authMiddleware,
   }
 );
 
+// Reset a forgotten password: the emailed OTP (purpose password_reset) proves ownership
+router.post('/reset-password',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('otp_code').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+    body('new_password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      }
+      const email = req.body.email.toLowerCase().trim();
+      const user = await db.getAsync('SELECT id FROM users WHERE email = ?', [email]);
+      const result = await otpService.verifyOTP(email, req.body.otp_code, 'password_reset');
+      if (!user || !result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message || 'Invalid or expired code. Please request a new one.'
+        });
+      }
+      const hash = await bcrypt.hash(req.body.new_password, 10);
+      await db.runAsync('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [hash, user.id]);
+      res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ success: false, message: 'Failed to reset password' });
+    }
+  }
+);
+
 // Change password
 router.post('/change-password', authMiddleware,
   [

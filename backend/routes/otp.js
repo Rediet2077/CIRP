@@ -45,6 +45,14 @@ router.post('/send',
         }
       }
 
+      // Password reset: answer the same way for unknown emails so accounts cannot be probed
+      if (purpose === 'password_reset') {
+        const account = await db.getAsync('SELECT id FROM users WHERE email = ?', normalizedEmail);
+        if (!account) {
+          return res.json({ success: true, message: 'If this email is registered, a code was sent.', expiresIn: 300 });
+        }
+      }
+
       // Send OTP
       const result = await otpService.sendOTP(normalizedEmail, purpose, full_name);
 
