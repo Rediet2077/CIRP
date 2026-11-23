@@ -5,7 +5,7 @@ import { TableRow, TableCell } from "@/ui/table";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { ArrowSquareOutIcon, CheckIcon } from "@phosphor-icons/react";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon, TrashIcon } from "@phosphor-icons/react";
 import { getPriorityBadge, getReportStatusBadge } from "@/modules/shared/components/triage_badges";
 import { ReportRecord as CitizenReportItem } from "../../types/report_types";
 
@@ -14,10 +14,11 @@ interface ReportTableRowProps {
   onOpenAccept: (id: string) => void;
   onOpenReject: (id: string) => void;
   onOpenResolve: (id: string) => void;
+  onOpenDelete: (id: string) => void;
   onOpenDetails: (id: string) => void;
 }
 
-export function ReportTableRow({ report, onOpenAccept, onOpenReject, onOpenResolve, onOpenDetails }: ReportTableRowProps) {
+export function ReportTableRow({ report, onOpenAccept, onOpenReject, onOpenResolve, onOpenDelete, onOpenDetails }: ReportTableRowProps) {
   return (
     <TableRow className="border-border hover:bg-muted/30 transition-colors">
       <TableCell className="font-medium text-sm">
@@ -65,6 +66,11 @@ export function ReportTableRow({ report, onOpenAccept, onOpenReject, onOpenResol
           {["assigned", "in_progress", "ACCEPTED", "IN_PROGRESS", "COMPLETED_PENDING_VERIFICATION"].includes(report.status) && (
             <Button size="sm" className="h-8 text-sm font-medium gap-1" onClick={() => onOpenResolve(report.id)}>
               <CheckIcon className="w-3.5 h-3.5" /> Resolved
+            </Button>
+          )}
+          {["resolved", "RESOLVED"].includes(report.status as string) && (
+            <Button size="sm" variant="destructive" className="h-8 text-sm font-medium gap-1" onClick={() => onOpenDelete(report.id)}>
+              <TrashIcon className="w-3.5 h-3.5" /> Delete
             </Button>
           )}
           <Button

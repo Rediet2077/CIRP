@@ -1087,13 +1087,23 @@ router.get('/stats/overview',
 const handleDeleteReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const report = await db.getAsync('SELECT user_id FROM reports WHERE id = ?', id);
+    const report = await db.getAsync('SELECT user_id, status, department_id FROM reports WHERE id = ?', id);
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'department_head' && report.user_id !== req.userId) {
+    const isStaff = req.user.role === 'admin' || req.user.role === 'department_head';
+    if (!isStaff && report.user_id !== req.userId) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    // Staff may only remove resolved reports, and department heads only their own department's
+    if (isStaff && report.user_id !== req.userId) {
+      if (String(report.status).toLowerCase() !== 'resolved') {
+        return res.status(409).json({ error: 'Only resolved reports can be deleted' });
+      }
+      if (req.user.role === 'department_head' && report.department_id !== req.user.department_id) {
+        return res.status(403).json({ error: 'This report belongs to another department' });
+      }
     }
 
     await db.runAsync('DELETE FROM reports WHERE id = ?', id);

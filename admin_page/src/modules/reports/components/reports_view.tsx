@@ -25,12 +25,14 @@ import { useNavigationStore } from "@/modules/shared/store/navigation_store";
 import { ReportTableRow } from "./subcomponents/report_table_row";
 import { ReportDetailsDialog } from "./dialogs/report_details_dialog";
 import { AcceptReportDialog } from "./dialogs/accept_report_dialog";
+import { DeleteReportDialog } from "./dialogs/delete_report_dialog";
 import { ResolveReportDialog } from "./dialogs/resolve_report_dialog";
 import { RejectReportDialog } from "./dialogs/reject_report_dialog";
 import { ReportRecord } from "../types/report_types";
 
 export function ReportsView() {
   const [reportToReject, setReportToReject] = useState<ReportRecord | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<ReportRecord | null>(null);
   const [reportToResolve, setReportToResolve] = useState<ReportRecord | null>(null);
   const { selectedDepartmentFilter, currentUserRole, activeOfficerDepartmentId } = useNavigationStore();
   const effectiveDept = currentUserRole === "DEPARTMENT_ADMIN" ? activeOfficerDepartmentId : selectedDepartmentFilter;
@@ -167,6 +169,7 @@ export function ReportsView() {
                       onOpenAccept={openAcceptDialog}
                       onOpenReject={(id) => setReportToReject(reportList.find((report) => report.id === id) || null)}
                       onOpenResolve={(id) => setReportToResolve(reportList.find((r) => r.id === id) || null)}
+                      onOpenDelete={(id) => setReportToDelete(reportList.find((r) => r.id === id) || null)}
                       onOpenDetails={openDetailsDialog}
                     />
                   ))
@@ -179,6 +182,7 @@ export function ReportsView() {
 
       <ReportDetailsDialog />
       <AcceptReportDialog />
+      {reportToDelete && <DeleteReportDialog report={reportToDelete} open onOpenChange={(open) => !open && setReportToDelete(null)} />}
       {reportToResolve && <ResolveReportDialog report={reportToResolve} open onOpenChange={(open) => !open && setReportToResolve(null)} />}
       {reportToReject && <RejectReportDialog report={reportToReject} open onOpenChange={(open) => !open && setReportToReject(null)} />}
     </div>
