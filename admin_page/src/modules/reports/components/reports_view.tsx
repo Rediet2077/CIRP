@@ -136,7 +136,7 @@ export function ReportsView() {
           {isLoading ? (
             <div className="p-8 text-center text-sm font-normal text-muted-foreground">Loading reports triage list...</div>
           ) : (
-            <Table>
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Report Code</TableHead>
@@ -147,7 +147,7 @@ export function ReportsView() {
                   <TableHead className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Priority</TableHead>
                   <TableHead className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Status</TableHead>
                   <TableHead className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Submitted</TableHead>
-                  <TableHead className="text-sm font-medium uppercase tracking-wider text-right text-muted-foreground">Actions</TableHead>
+                  <TableHead className="w-[300px] text-sm font-medium uppercase tracking-wider text-right text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -17,7 +17,10 @@ import { AcceptReportForm } from "./accept_report_form";
 export function AcceptReportDialog() {
   const { selectedReportId, isAcceptDialogOpen, closeAcceptDialog } = useReportUIStore();
   const { data: report } = useReportDetails(selectedReportId);
-  const { data: staffContractors } = useContractorList(report?.department_id);
+  const { data: departmentStaff } = useContractorList(report?.department_id ?? undefined);
+  const { data: allStaff } = useContractorList();
+  // Fall back to everyone when the report's department has nobody registered
+  const staffContractors = departmentStaff?.length ? departmentStaff : allStaff;
 
   if (!selectedReportId || !report) return null;
 

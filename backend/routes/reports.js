@@ -3,6 +3,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { body, validationResult } = require('express-validator');
 const db = require('../config/database');
+const { notifyAssignee } = require('../services/assignment-notifier');
 const { authMiddleware, requireRole } = require('../middleware/auth');
 const http = require('http');
 
@@ -215,7 +216,7 @@ router.get('/', authMiddleware, async (req, res) => {
     if (req.user.role === 'department_head' && req.user.department_id) {
       whereConditions.push('r.department_id = ?');
       params.push(req.user.department_id);
-    } else if (department_id) {
+    } else if (department_id && department_id !== 'all') {
       whereConditions.push('r.department_id = ?');
       params.push(department_id);
     }
@@ -636,7 +637,9 @@ router.post('/:id/accept',
         assignedWorkerId,
         deadlineDate,
         workDescription,
-        internalNote
+        internalNote,
+        notifyEmail = true,
+        notifySms = true
       } = req.body;
 
       // Get current report
@@ -656,7 +659,19 @@ router.post('/:id/accept',
       let worker = null;
       if (assignedWorkerId) {
         worker = await db.getAsync('SELECT * FROM staff_contractors WHERE id = ?', assignedWorkerId);
+        if (!worker) {
+          return res.status(400).json({ error: 'Selected staff/contractor was not found' });
+        }
       }
+
+      const activeTask = await db.getAsync(
+        `SELECT task_code FROM tasks WHERE report_id = ? AND status IN ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED_PENDING_VERIFICATION')`,
+        id
+      );
+      if (activeTask) {
+        return res.status(409).json({ error: `This report already has an active work order (${activeTask.task_code})` });
+      }
+
       if (!worker) {
         // Fallback to first available staff for the department
         worker = await db.getAsync('SELECT * FROM staff_contractors WHERE department_id = ? LIMIT 1', report.department_id);
@@ -670,7 +685,8 @@ router.post('/:id/accept',
       const taskId = `task-${Date.now()}`;
       const reportCode = report.report_code || `REP-${report.id.substring(0, 8).toUpperCase()}`;
       const taskCode = `TSK-${report.asset_code || 'GEN'}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const deadline = deadlineDate || '2026-11-20';
+      const slaDays = { LOW: 7, MEDIUM: 3, HIGH: 2, CRITICAL: 1 }[String(priority).toUpperCase()] || 3;
+      const deadline = deadlineDate || new Date(Date.now() + slaDays * 86400000).toISOString().substring(0, 10);
 
       const progressNotes = [
         {
@@ -781,7 +797,22 @@ router.post('/:id/accept',
         extensions: []
       };
 
-      console.log('✅ Report accepted successfully, created task:', taskCode);
+      // Tell the assignee (email / SMS); a delivery problem never undoes the assignment
+      taskRecord.notification = await notifyAssignee({
+        worker,
+        report,
+        notifyEmail: notifyEmail !== false,
+        notifySms: notifySms !== false,
+        task: {
+          taskCode,
+          reportCode,
+          priority: priority.toUpperCase(),
+          deadline,
+          instructions: workDescription,
+        },
+      });
+
+      console.log('✅ Report accepted successfully, created task:', taskCode, taskRecord.notification);
       res.json(taskRecord);
     } catch (error) {
       console.error('Accept report error:', error);

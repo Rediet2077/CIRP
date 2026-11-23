@@ -196,6 +196,49 @@ CIRP - Community Infrastructure Reporting Platform
   }
 
   /**
+   * Tell an assignee (staff or contractor) about a newly dispatched task.
+   * @param {string} to - Assignee email
+   * @param {object} d - { assigneeName, taskCode, reportCode, title, category, location, mapUrl, priority, deadline, instructions, departmentName }
+   */
+  async sendTaskAssignmentEmail(to, d) {
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+    const row = (label, value) => value
+      ? `<tr><td style="padding:6px 12px;color:#666;white-space:nowrap">${label}</td><td style="padding:6px 12px"><strong>${esc(value)}</strong></td></tr>`
+      : '';
+    const mailOptions = {
+      from: `"${process.env.EMAIL_FROM_NAME || 'CIRP'}" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: `New work order ${d.taskCode} - ${d.priority} priority (deadline ${d.deadline})`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
+          <div style="background:#2e7d32;color:#fff;padding:20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0">CIRP - New Work Order</h2>
+          </div>
+          <div style="border:1px solid #e0e0e0;border-top:none;padding:20px;border-radius:0 0 8px 8px">
+            <p>Hello ${esc(d.assigneeName)},</p>
+            <p>You have been assigned a new infrastructure problem to resolve.</p>
+            <table style="border-collapse:collapse;width:100%;background:#f7f7f7;border-radius:6px">
+              ${row('Work order', d.taskCode)}
+              ${row('Report', d.reportCode)}
+              ${row('Problem', d.title)}
+              ${row('Category', d.category)}
+              ${row('Location', d.location)}
+              ${row('Priority', d.priority)}
+              ${row('Deadline', d.deadline)}
+              ${row('Department', d.departmentName)}
+            </table>
+            ${d.instructions ? `<p><strong>Instructions:</strong><br>${esc(d.instructions)}</p>` : ''}
+            ${d.mapUrl ? `<p><a href="${esc(d.mapUrl)}" style="color:#2e7d32">Open location on map</a></p>` : ''}
+            <p style="font-size:12px;color:#888">Sent automatically by the Community Infrastructure Reporting Platform. Please contact the municipal office if this was not meant for you.</p>
+          </div>
+        </div>`,
+    };
+    return this.sendMail(mailOptions);
+  }
+
+  /**
    * Test email connection
    */
   async testConnection() {

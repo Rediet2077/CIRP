@@ -83,7 +83,15 @@ export async function executeApiRequest<T>(options: {
           // Return empty data to prevent further errors during redirect
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Prefer the reason the backend gave (e.g. "already has an active work order")
+        let reason = "";
+        try {
+          const body = await response.json();
+          reason = body?.error || body?.message || "";
+        } catch {
+          // body was not JSON
+        }
+        throw new Error(reason || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const rawData = await response.json();

@@ -19,6 +19,8 @@ const AcceptReportInputSchema = z.object({
   deadlineDate: z.string().min(1, "Deadline date is required"),
   workDescription: z.string().min(1, "Work description is required"),
   internalNote: z.string().default(""),
+  notifyEmail: z.boolean().optional(),
+  notifySms: z.boolean().optional(),
 });
 export type AcceptReportInput = z.infer<typeof AcceptReportInputSchema>;
 

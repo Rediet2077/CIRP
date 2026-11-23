@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
     let whereConditions = [];
     let params = [];
 
-    if (department_id) {
+    if (department_id && department_id !== 'all') {
       whereConditions.push('department_id = ?');
       params.push(department_id);
     }

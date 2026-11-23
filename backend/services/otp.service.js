@@ -82,6 +82,26 @@ class OTPService {
    */
   async sendOTP(email, purpose = 'registration', userName = 'User') {
     try {
+      // A code was just sent (e.g. register already sent one and the app asks
+      // again): keep that code valid instead of replacing it with a new one.
+      const recent = await db.getAsync(
+        `SELECT id, expires_at FROM otp_verifications
+         WHERE email = ? AND purpose = ? AND is_verified = 0
+           AND expires_at > datetime('now')
+           AND created_at > datetime('now', '-30 seconds')
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        email, purpose
+      );
+      if (recent) {
+        return {
+          success: true,
+          message: 'OTP already sent',
+          otpId: recent.id,
+          expiresAt: new Date(recent.expires_at).toISOString()
+        };
+      }
+
       // Check rate limiting
       const rateCheck = await this.checkRateLimit(email);
       if (!rateCheck.allowed) {

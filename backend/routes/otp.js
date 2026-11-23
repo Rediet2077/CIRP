@@ -49,7 +49,7 @@ router.post('/send',
       const result = await otpService.sendOTP(normalizedEmail, purpose, full_name);
 
       if (!result.success) {
-        return res.status(429).json({
+        return res.status(result.retryAfter ? 429 : 502).json({
           success: false,
           message: result.message,
           retryAfter: result.retryAfter
@@ -168,7 +168,7 @@ router.post('/resend',
       const result = await otpService.sendOTP(normalizedEmail, purpose, full_name);
 
       if (!result.success) {
-        return res.status(429).json({
+        return res.status(result.retryAfter ? 429 : 502).json({
           success: false,
           message: result.message,
           retryAfter: result.retryAfter

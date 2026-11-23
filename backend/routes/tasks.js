@@ -69,7 +69,7 @@ router.get('/', authMiddleware, async (req, res) => {
     if (req.user.role === 'department_head' && req.user.department_id) {
       whereConditions.push('department_id = ?');
       params.push(req.user.department_id);
-    } else if (department_id) {
+    } else if (department_id && department_id !== 'all') {
       whereConditions.push('department_id = ?');
       params.push(department_id);
     }

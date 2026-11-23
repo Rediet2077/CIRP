@@ -266,6 +266,12 @@ export const TaskRecordSchema = z.object({
     )
     .optional(),
   extensions: z.array(ExtensionRecordSchema),
+  notification: z
+    .object({
+      email: z.object({ status: z.string(), detail: z.string().optional() }),
+      sms: z.object({ status: z.string(), detail: z.string().optional() }),
+    })
+    .optional(),
 });
 export type TaskRecord = z.infer<typeof TaskRecordSchema>;
 
