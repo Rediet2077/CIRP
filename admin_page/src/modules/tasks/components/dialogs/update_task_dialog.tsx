@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/dialog";
+import { Alert, AlertDescription } from "@/ui/alert";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
@@ -39,23 +40,27 @@ function UpdateTaskForm({ task, onClose }: UpdateTaskFormProps) {
   const [newStatus, setNewStatus] = useState<UpdateTaskProgressInput["newStatus"]>(
     task.status === "ASSIGNED" ? "IN_PROGRESS" : task.status
   );
-  const [workNotes, setWorkNotes] = useState<string>(
-    "Field repair crew deployed. Diagnosing electrical circuit integrity and replacing damaged components."
-  );
+  const [workNotes, setWorkNotes] = useState<string>("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>(
     task.assigned_worker_name || "Lead Field Technician"
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProgressMutation.mutateAsync({
-      taskId: task.id,
-      progressPercentage,
-      newStatus,
-      progressNote: workNotes,
-      authorName,
-    });
-    onClose();
+    setFormError(null);
+    try {
+      await updateProgressMutation.mutateAsync({
+        taskId: task.id,
+        progressPercentage,
+        newStatus,
+        progressNote: workNotes,
+        authorName,
+      });
+      onClose();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Could not save the progress update.");
+    }
   };
 
   return (
@@ -106,15 +111,21 @@ function UpdateTaskForm({ task, onClose }: UpdateTaskFormProps) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Execution Progress Log Note</Label>
+        <Label className="text-sm font-medium">Progress Update (the citizen sees this)</Label>
         <Textarea
           value={workNotes}
           onChange={(e) => setWorkNotes(e.target.value)}
           className="text-sm font-normal min-h-[80px]"
-          placeholder="Describe technical work accomplished during this shift..."
+          placeholder="e.g. Crew is on site and has started repairing the road surface."
           required
         />
       </div>
+
+      {formError && (
+        <Alert variant="destructive">
+          <AlertDescription className="text-sm">{formError}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-border">
         <Button

@@ -288,7 +288,7 @@ class ApiService {
   }
 
   /// Get report by ID
-  static Future<Map<String, dynamic>> getReportById(int id) async {
+  static Future<Map<String, dynamic>> getReportById(dynamic id) async {
     try {
       final headers = await _getAuthHeaders();
       final response = await http.get(
@@ -301,12 +301,13 @@ class ApiService {
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'data': data['data'],
+          // GET /reports/:id returns the report itself, not wrapped in `data`
+          'data': data['data'] ?? data,
         };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Failed to fetch report',
+          'message': data['message'] ?? data['error'] ?? 'Failed to fetch report',
         };
       }
     } catch (e) {
@@ -318,7 +319,7 @@ class ApiService {
   }
 
   /// Get report details (alias for getReportById)
-  static Future<Map<String, dynamic>> getReportDetails(int id) async {
+  static Future<Map<String, dynamic>> getReportDetails(dynamic id) async {
     return getReportById(id);
   }
 

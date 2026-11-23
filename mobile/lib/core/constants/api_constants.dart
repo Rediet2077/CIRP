@@ -27,7 +27,7 @@ class ApiConstants {
   // Reports Endpoints
   static String get reportsUrl => '$apiBaseUrl/reports/';
   static String get myReportsUrl => '$apiBaseUrl/reports/my-reports/';
-  static String reportDetailUrl(int id) => '$apiBaseUrl/reports/$id/';
+  static String reportDetailUrl(dynamic id) => '$apiBaseUrl/reports/$id/';
   
   // Categories Endpoints
   static String get categoriesUrl => '$apiBaseUrl/categories/';

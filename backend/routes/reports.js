@@ -101,6 +101,41 @@ function mapStatusToFrontend(status) {
   return status.toUpperCase();
 }
 
+// Convert a stored "YYYY-MM-DD HH:MM:SS" (UTC) timestamp to ISO 8601
+function toIsoUtc(ts) {
+  if (!ts) return null;
+  const str = String(ts);
+  return /[zZ]|[+-]\d\d:?\d\d$/.test(str) ? str : `${str.replace(' ', 'T')}Z`;
+}
+
+// What the citizen may see of the work order: no staff names or internal notes
+function buildCitizenProgress(task) {
+  let notes = [];
+  try {
+    notes = task.progress_notes ? JSON.parse(task.progress_notes) : [];
+  } catch (e) {}
+
+  // The first note is the dispatch note, which names the assignee
+  const updates = notes.slice(1).map(n => ({
+    timestamp: toIsoUtc(n.timestamp),
+    note: String(n.note || '').startsWith('Completion dossier submitted')
+      ? 'Repair work finished. Waiting for final verification by the municipality.'
+      : n.note,
+    percentage: Number(n.percentage) || 0
+  })).reverse();
+
+  return {
+    task_status: task.status,
+    percentage: Number(task.progress_percentage || 0),
+    assigned_to: task.is_contractor && task.contractor_company
+      ? task.contractor_company
+      : (task.department_name || 'Municipal team'),
+    accepted_at: toIsoUtc(task.created_at),
+    deadline_date: task.deadline_date,
+    updates
+  };
+}
+
 // Helper to format a report row for frontend schemas
 async function formatReport(r) {
   // Get images
@@ -144,7 +179,7 @@ async function formatReport(r) {
   }
 
   // Linked task if any
-  const linkedTask = await db.getAsync('SELECT id FROM tasks WHERE report_id = ?', r.id);
+  const linkedTask = await db.getAsync('SELECT * FROM tasks WHERE report_id = ? ORDER BY created_at DESC LIMIT 1', r.id);
 
   let reporterName = r.reporter_name;
   let reporterContact = r.reporter_phone || r.reporter_email || '';
@@ -177,6 +212,7 @@ async function formatReport(r) {
     })) : null,
     suggested_nearby_assets: nearbyAssets,
     linked_task_id: linkedTask ? linkedTask.id : null,
+    progress: linkedTask ? buildCitizenProgress(linkedTask) : null,
     ai_category_prediction: {
       suggested_category: r.category_name || 'Infrastructure',
       confidence: 0.94

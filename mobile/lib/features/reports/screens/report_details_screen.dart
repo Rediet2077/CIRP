@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cirp/core/theme/app_theme.dart';
@@ -23,28 +24,46 @@ class ReportDetailsScreen extends StatefulWidget {
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   Map<String, dynamic>? _reportData;
   bool _isLoading = false;
+  Timer? _refreshTimer;
+
+  String? get _reportId {
+    final id = widget.reportId ?? widget.report?['id']?.toString();
+    return (id != null && id.isNotEmpty) ? id : null;
+  }
 
   @override
   void initState() {
     super.initState();
     _reportData = widget.report;
-    final id = widget.reportId ?? widget.report?['id']?.toString();
-    if (id != null && id.isNotEmpty) {
+    final id = _reportId;
+    if (id != null) {
       _fetchDetails(id);
+      // Keep the timeline current while the citizen has this screen open
+      _refreshTimer = Timer.periodic(
+        const Duration(seconds: 20),
+        (_) => _fetchDetails(id),
+      );
     }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchDetails(String id) async {
     if (_reportData == null) {
       setState(() => _isLoading = true);
     }
-    final result = await ApiService.getReportDetails(int.parse(id));
-    if (mounted && result['success'] == true && result['data'] != null) {
+    final result = await ApiService.getReportDetails(id);
+    if (!mounted) return;
+    if (result['success'] == true && result['data'] is Map) {
       setState(() {
-        _reportData = result['data'];
+        _reportData = Map<String, dynamic>.from(result['data'] as Map);
         _isLoading = false;
       });
-    } else if (mounted) {
+    } else {
       setState(() => _isLoading = false);
     }
   }
@@ -90,7 +109,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   String _formatDate(String? rawDate) {
     if (rawDate == null || rawDate.isEmpty) return '';
     try {
-      final dt = DateTime.parse(rawDate).toLocal();
+      // "2026-11-23 19:38:00" is UTC; mark it so toLocal() converts correctly
+      final isNaiveUtc =
+          RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').hasMatch(rawDate.trim());
+      final dt = DateTime.parse(isNaiveUtc ? '${rawDate.trim().replaceFirst(' ', 'T')}Z' : rawDate).toLocal();
       return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return rawDate.split('T')[0];
@@ -104,8 +126,29 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     final statusRaw = (data['status'] as String? ?? 'SUBMITTED').toUpperCase();
     final isResolved = statusRaw == 'RESOLVED';
     final isRejected = statusRaw == 'REJECTED';
-    final isInProgress = statusRaw == 'IN_PROGRESS' || statusRaw == 'IN PROGRESS';
-    final isAccepted = statusRaw == 'ACCEPTED' || statusRaw == 'ASSIGNED' || isInProgress || isResolved;
+    final progress = data['progress'] is Map
+        ? Map<String, dynamic>.from(data['progress'] as Map)
+        : null;
+    final taskStatus = (progress?['task_status'] as String? ?? '').toUpperCase();
+    final percentage = ((progress?['percentage'] as num?) ?? 0).toInt().clamp(0, 100);
+    final updates = (progress?['updates'] as List?) ?? const [];
+    final awaitingVerification = taskStatus == 'COMPLETED_PENDING_VERIFICATION' && !isResolved;
+    final isReturned = taskStatus == 'RETURNED' && !isResolved;
+    final isInProgress = !awaitingVerification &&
+        !isResolved &&
+        (statusRaw == 'IN_PROGRESS' ||
+            statusRaw == 'IN PROGRESS' ||
+            taskStatus == 'IN_PROGRESS' ||
+            isReturned);
+    final isAccepted = statusRaw == 'ACCEPTED' ||
+        statusRaw == 'ASSIGNED' ||
+        progress != null ||
+        isInProgress ||
+        awaitingVerification ||
+        isResolved;
+    final assignedTo = progress?['assigned_to']?.toString() ?? '';
+    final deadline = progress?['deadline_date']?.toString() ?? '';
+    final shownStatus = awaitingVerification ? 'COMPLETED_PENDING_VERIFICATION' : statusRaw;
 
     final title = data['title'] ?? 'Infrastructure Issue';
     final reportNo = data['report_number'] ?? (data['id'] != null ? '#${data['id'].toString().substring(0, 8)}' : '#---');
@@ -150,7 +193,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       ),
       body: _isLoading && _reportData == null
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              onRefresh: () async {
+                final id = _reportId;
+                if (id != null) await _fetchDetails(id);
+              },
+              child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +207,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      StatusBadge(status: statusRaw),
+                      StatusBadge(status: shownStatus),
                       if (data['priority'] != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -276,7 +325,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Dynamic Progress Timeline Steps
+                  // Dynamic Progress Timeline Steps (driven by the admin's work order)
                   _TimelineItem(
                     label: 'Report Submitted',
                     time: dateStr,
@@ -284,28 +333,137 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     isCompleted: true,
                   ),
                   _TimelineItem(
-                    label: 'Under Review / Triage',
-                    time: isAccepted ? dateStr : '',
+                    label: isAccepted ? 'Accepted & Assigned' : 'Under Review / Triage',
+                    time: isAccepted
+                        ? _formatDate(progress?['accepted_at']?.toString() ?? data['updated_at']?.toString())
+                        : '',
+                    detail: isAccepted && assignedTo.isNotEmpty
+                        ? 'Assigned to $assignedTo${deadline.isNotEmpty ? ' · Expected by $deadline' : ''}'
+                        : null,
                     color: isAccepted ? AppColors.underReview : AppColors.textHint,
                     isCompleted: isAccepted,
                     isPending: !isAccepted,
                   ),
                   _TimelineItem(
                     label: 'Work In Progress',
-                    time: (isInProgress || isResolved) ? _formatDate(data['updated_at']) : '',
-                    color: isInProgress ? AppColors.inProgress : (isResolved ? AppColors.primary : AppColors.textHint),
+                    time: (isInProgress || awaitingVerification || isResolved)
+                        ? _formatDate(data['updated_at']?.toString())
+                        : '',
+                    detail: isReturned
+                        ? 'Sent back for correction · $percentage% complete'
+                        : (isInProgress ? '$percentage% complete' : null),
+                    color: (isInProgress || awaitingVerification || isResolved)
+                        ? (isInProgress ? AppColors.inProgress : AppColors.primary)
+                        : AppColors.textHint,
                     isActive: isInProgress,
-                    isCompleted: isResolved,
-                    isPending: !isInProgress && !isResolved,
+                    isCompleted: awaitingVerification || isResolved,
+                    isPending: !isInProgress && !awaitingVerification && !isResolved,
                   ),
                   _TimelineItem(
-                    label: isRejected ? 'Rejected' : 'Resolved & Completed',
-                    time: isResolved ? _formatDate(data['resolved_at'] ?? data['updated_at']) : '',
-                    color: isResolved ? AppColors.resolved : (isRejected ? AppColors.red : AppColors.textHint),
+                    label: isRejected
+                        ? 'Rejected'
+                        : (awaitingVerification ? 'Awaiting Final Verification' : 'Resolved & Completed'),
+                    time: isResolved
+                        ? _formatDate((data['resolved_at'] ?? data['updated_at'])?.toString())
+                        : '',
+                    color: isResolved
+                        ? AppColors.resolved
+                        : (isRejected
+                            ? AppColors.red
+                            : (awaitingVerification ? AppColors.inProgress : AppColors.textHint)),
                     isCompleted: isResolved,
-                    isPending: !isResolved && !isRejected,
+                    isActive: awaitingVerification,
+                    isPending: !isResolved && !isRejected && !awaitingVerification,
                     isLast: true,
                   ),
+
+                  // Overall progress and the latest messages from the municipality
+                  if (progress != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Repair progress',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                '${isResolved ? 100 : percentage}%',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: (isResolved ? 100 : percentage) / 100,
+                              minHeight: 8,
+                              backgroundColor: AppColors.border,
+                              color: isResolved ? AppColors.resolved : AppColors.inProgress,
+                            ),
+                          ),
+                          if (updates.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            const Text(
+                              'Latest updates',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            for (final u in updates)
+                              if (u is Map)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        (u['note'] ?? '').toString(),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textPrimary,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_formatDate(u['timestamp']?.toString())} · ${(u['percentage'] ?? 0)}%',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
 
                   // Resolution / Admin Feedback Box
                   if (completionNotes.toString().isNotEmpty) ...[
@@ -374,6 +532,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 ],
               ),
             ),
+            ),
     );
   }
 }
@@ -381,6 +540,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 class _TimelineItem extends StatelessWidget {
   final String label;
   final String time;
+  final String? detail;
   final Color color;
   final bool isCompleted;
   final bool isActive;
@@ -390,6 +550,7 @@ class _TimelineItem extends StatelessWidget {
   const _TimelineItem({
     required this.label,
     required this.time,
+    this.detail,
     required this.color,
     this.isCompleted = false,
     this.isActive = false,
@@ -467,6 +628,16 @@ class _TimelineItem extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                  if (detail != null && detail!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detail!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],

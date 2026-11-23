@@ -58,6 +58,31 @@ function formatTask(task) {
   };
 }
 
+// Tell the citizen who filed the report about a change in its work order
+async function notifyCitizen(reportId, title, message) {
+  if (!reportId) return;
+  const report = await db.getAsync('SELECT user_id FROM reports WHERE id = ?', reportId);
+  if (!report || !report.user_id) return;
+  await db.runAsync(`
+    INSERT INTO notifications (id, user_id, title, message, type, reference_id)
+    VALUES (?, ?, ?, ?, 'status_update', ?)
+  `, [uuidv4(), report.user_id, title, message, reportId]);
+}
+
+function appendNote(task, author, note, percentage) {
+  let notes = [];
+  try {
+    notes = task.progress_notes ? JSON.parse(task.progress_notes) : [];
+  } catch (e) {}
+  notes.push({
+    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    author,
+    note,
+    percentage: Number(percentage) || 0
+  });
+  return JSON.stringify(notes);
+}
+
 // Get all tasks
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -115,6 +140,13 @@ router.post('/:id/progress', authMiddleware, async (req, res) => {
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+    if (task.status === 'RESOLVED') {
+      return res.status(409).json({ error: 'This work order is already resolved' });
+    }
+    const percentage = Number(progressPercentage);
+    if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+      return res.status(400).json({ error: 'Progress must be a number between 0 and 100' });
+    }
 
     let progressNotes = [];
     try {
@@ -125,17 +157,23 @@ router.post('/:id/progress', authMiddleware, async (req, res) => {
     progressNotes.push({
       timestamp: now,
       author: authorName || req.user.full_name || 'Worker',
-      note: progressNote || `Progress updated to ${progressPercentage}%`,
-      percentage: Number(progressPercentage)
+      note: progressNote || `Progress updated to ${percentage}%`,
+      percentage
     });
 
-    const statusToSet = newStatus || (Number(progressPercentage) > 0 ? 'IN_PROGRESS' : task.status);
+    const statusToSet = newStatus || (percentage > 0 ? 'IN_PROGRESS' : task.status);
 
     await db.runAsync(`
       UPDATE tasks 
       SET progress_percentage = ?, status = ?, progress_notes = ?
       WHERE id = ?
-    `, [progressPercentage, statusToSet, JSON.stringify(progressNotes), id]);
+    `, [percentage, statusToSet, JSON.stringify(progressNotes), id]);
+
+    await notifyCitizen(
+      task.report_id,
+      'Work update on your report',
+      `Report #${task.report_code}: ${progressNote || 'Work is progressing'} (${percentage}% complete).`
+    );
 
     // Also update report status if task transitioned to IN_PROGRESS
     if (task.report_id && statusToSet === 'IN_PROGRESS') {
@@ -201,6 +239,12 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
       WHERE id = ?
     `, [JSON.stringify(submission), JSON.stringify(progressNotes), id]);
 
+    await notifyCitizen(
+      task.report_id,
+      'Repair work finished',
+      `Report #${task.report_code}: the repair work is finished and is waiting for final verification.`
+    );
+
     // Record audit log
     await db.runAsync(`
       INSERT INTO audit_logs (id, officer_name, officer_role, department_name, action_type, target_entity_id, target_entity_code, details_summary)
@@ -236,9 +280,13 @@ router.post('/:id/verify-resolve', authMiddleware, async (req, res) => {
     // Update task to RESOLVED
     await db.runAsync(`
       UPDATE tasks 
-      SET status = 'RESOLVED', progress_percentage = 100
+      SET status = 'RESOLVED', progress_percentage = 100, progress_notes = ?
       WHERE id = ?
-    `, [id]);
+    `, [
+      appendNote(task, officerName || req.user.full_name || 'Officer',
+        `Resolved and verified. ${resolutionNotes || 'All checks passed.'}`, 100),
+      id
+    ]);
 
     // Update linked report to resolved
     if (task.report_id) {
@@ -311,9 +359,23 @@ router.post('/:id/return-reject', authMiddleware, async (req, res) => {
 
     await db.runAsync(`
       UPDATE tasks 
-      SET status = 'RETURNED', deadline_date = ?, rejection_history = ?
+      SET status = 'RETURNED', deadline_date = ?, rejection_history = ?, progress_notes = ?,
+          progress_percentage = MIN(progress_percentage, 90)
       WHERE id = ?
-    `, [newExpectedDate || task.deadline_date, JSON.stringify(rejectionHistory), id]);
+    `, [
+      newExpectedDate || task.deadline_date,
+      JSON.stringify(rejectionHistory),
+      appendNote(task, officerName || req.user.full_name || 'Officer',
+        `The finished work did not pass inspection and was sent back for correction.${newExpectedDate ? ` New expected date: ${newExpectedDate}.` : ''}`,
+        Math.min(Number(task.progress_percentage) || 0, 90)),
+      id
+    ]);
+
+    await notifyCitizen(
+      task.report_id,
+      'Work sent back for correction',
+      `Report #${task.report_code}: the work did not pass inspection and is being corrected.`
+    );
 
     // Record audit log
     await db.runAsync(`

@@ -7,16 +7,49 @@ class StatusBadge extends StatelessWidget {
 
   const StatusBadge({super.key, required this.status, this.small = false});
 
-  Color get _color {
-    switch (status.toLowerCase()) {
+  /// "IN_PROGRESS" -> "in progress"
+  String get _key => status.toLowerCase().replaceAll('_', ' ').trim();
+
+  String get _label {
+    switch (_key) {
+      case 'new':
+      case 'pending':
+      case 'submitted':
+        return 'Submitted';
+      case 'accepted':
+      case 'assigned':
+      case 'under review':
+        return 'Under Review';
       case 'in progress':
+        return 'In Progress';
+      case 'completed pending verification':
+        return 'Awaiting Verification';
+      case 'resolved':
+        return 'Resolved';
+      case 'rejected':
+      case 'disputed':
+        return 'Rejected';
+      default:
+        return status;
+    }
+  }
+
+  Color get _color {
+    switch (_key) {
+      case 'in progress':
+      case 'completed pending verification':
         return AppColors.inProgress;
       case 'under review':
+      case 'accepted':
+      case 'assigned':
         return AppColors.underReview;
       case 'resolved':
         return AppColors.resolved;
       case 'rejected':
+      case 'disputed':
         return AppColors.rejected;
+      case 'new':
+      case 'pending':
       case 'submitted':
         return AppColors.textSecondary;
       case 'assigned to contractor':
@@ -56,7 +89,7 @@ class StatusBadge extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           Text(
-            status,
+            _label,
             style: TextStyle(
               color: _color,
               fontSize: fontSize,
