@@ -82,7 +82,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <FieldGroup className="gap-3">
               <Field data-invalid={!!errors.email}>
                 <FieldLabel htmlFor="email" className="text-sm font-medium">
