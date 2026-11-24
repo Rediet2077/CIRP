@@ -552,12 +552,15 @@ router.post('/',
       // Check for duplicate reports using AI before creating
       let duplicateAnalysis = { has_potential_duplicate: false, similar_reports: [] };
       try {
-        // Get recent reports from same category (last 30 days)
+        // Recent reports of the same category name (the seed data has each category twice)
         const recentReports = await db.allAsync(`
           SELECT r.*, c.name as category_name
           FROM reports r
           LEFT JOIN categories c ON r.category_id = c.id
-          WHERE r.category_id = ? 
+          WHERE r.category_id IN (
+                  SELECT id FROM categories
+                   WHERE name = (SELECT name FROM categories WHERE id = ?)
+                )
             AND r.created_at > datetime('now', '-30 days')
             AND r.status != 'rejected'
           ORDER BY r.created_at DESC
