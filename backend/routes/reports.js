@@ -249,11 +249,13 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     // If department admin, filter reports for their department
+    // The seed data holds each department twice (same name, different id), so match by name
+    const sameNameDept = 'r.department_id IN (SELECT id FROM departments WHERE name = (SELECT name FROM departments WHERE id = ?))';
     if (req.user.role === 'department_head' && req.user.department_id) {
-      whereConditions.push('r.department_id = ?');
+      whereConditions.push(sameNameDept);
       params.push(req.user.department_id);
     } else if (department_id && department_id !== 'all') {
-      whereConditions.push('r.department_id = ?');
+      whereConditions.push(sameNameDept);
       params.push(department_id);
     }
 

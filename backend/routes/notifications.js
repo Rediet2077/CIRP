@@ -30,7 +30,7 @@ async function buildStaffNotifications(user, requestedDept) {
   const reports = await db.allAsync(
     `SELECT r.id, r.report_code, r.title, r.address, r.priority, r.created_at, r.department_id, d.name AS dept
        FROM reports r LEFT JOIN departments d ON d.id = r.department_id
-      WHERE LOWER(r.status) = 'pending'${scope('r.department_id')} ORDER BY r.created_at DESC LIMIT 30`, args);
+      WHERE LOWER(r.status) = 'pending'${deptId ? ' AND r.department_id IN (SELECT id FROM departments WHERE name = (SELECT name FROM departments WHERE id = ?))' : ''} ORDER BY r.created_at DESC LIMIT 30`, args);
   for (const r of reports) {
     const pr = String(r.priority || 'medium').toUpperCase();
     items.push({
