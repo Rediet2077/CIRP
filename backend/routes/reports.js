@@ -11,15 +11,64 @@ const http = require('http');
 const AI_SERVICE_HOST = process.env.AI_SERVICE_HOST || 'localhost';
 const AI_SERVICE_PORT = process.env.AI_SERVICE_PORT || 8001;
 
+// Built-in duplicate scorer, used when the Python AI service cannot be reached
+// (for example on Render). Same rules as ai/duplicate_detection/src/classifier.py.
+function wordOverlap(a, b) {
+  const wa = new Set(String(a || '').toLowerCase().split(/\s+/).filter(Boolean));
+  const wb = new Set(String(b || '').toLowerCase().split(/\s+/).filter(Boolean));
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let shared = 0;
+  wa.forEach((w) => { if (wb.has(w)) shared++; });
+  return shared / (wa.size + wb.size - shared);
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const nums = [lat1, lon1, lat2, lon2].map(Number);
+  if (nums.some((n) => !Number.isFinite(n))) return null;
+  const rad = (d) => (d * Math.PI) / 180;
+  const [a1, o1, a2, o2] = nums;
+  const h = Math.sin(rad(a2 - a1) / 2) ** 2 +
+    Math.cos(rad(a1)) * Math.cos(rad(a2)) * Math.sin(rad(o2 - o1) / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function localDuplicateCheck(newReport, existingReports) {
+  const similar = [];
+  for (const r of existingReports) {
+    const text = wordOverlap(newReport.title, r.title) * 0.4 + wordOverlap(newReport.description, r.description) * 0.6;
+    const category = String(newReport.category_name || '') === String(r.category_name || '') ? 1 : 0;
+    const dist = distanceMeters(newReport.latitude, newReport.longitude, r.latitude, r.longitude);
+    const location = dist === null ? 0.5 : dist < 50 ? 1 : dist < 200 ? 0.7 : dist < 500 ? 0.4 : 0;
+    const score = text * 0.35 + category * 0.25 + location * 0.25 + 0.5 * 0.15;
+    if (score >= 0.75) {
+      similar.push({
+        id: r.id,
+        title: r.title,
+        similarity_score: Math.round(score * 100) / 100,
+        breakdown: {
+          text: { score: Math.round(text * 100) / 100 },
+          category: { score: category },
+          location: { score: location, distance_meters: dist === null ? null : Math.round(dist) },
+        },
+      });
+    }
+  }
+  similar.sort((x, y) => y.similarity_score - x.similarity_score);
+  return { has_potential_duplicate: similar.length > 0, similar_reports: similar.slice(0, 3), source: 'built-in' };
+}
+
 // Helper function to call AI service for duplicate detection
 async function checkDuplicateReport(newReport, existingReports) {
+  const ai = await callAiDuplicateService(newReport, existingReports);
+  return ai || localDuplicateCheck(newReport, existingReports || []);
+}
+
+// Calls the Python AI service; resolves null when it is unreachable or answers badly
+async function callAiDuplicateService(newReport, existingReports) {
   return new Promise((resolve) => {
     try {
       if (!existingReports || existingReports.length === 0) {
-        resolve({
-          has_potential_duplicate: false,
-          similar_reports: []
-        });
+        resolve(null);
         return;
       }
 
@@ -60,30 +109,30 @@ async function checkDuplicateReport(newReport, existingReports) {
           try {
             const result = JSON.parse(data);
             console.log('🤖 AI Duplicate Detection Result:', result);
-            resolve(result);
+            resolve(typeof result.has_potential_duplicate === 'boolean' ? result : null);
           } catch (e) {
             console.error('Error parsing AI response:', e);
-            resolve({ has_potential_duplicate: false, similar_reports: [] });
+            resolve(null);
           }
         });
       });
 
       req.on('error', (e) => {
         console.error('AI service request error:', e.message);
-        resolve({ has_potential_duplicate: false, similar_reports: [] });
+        resolve(null);
       });
 
       req.on('timeout', () => {
         console.warn('AI service timeout');
         req.destroy();
-        resolve({ has_potential_duplicate: false, similar_reports: [] });
+        resolve(null);
       });
 
       req.write(postData);
       req.end();
     } catch (error) {
       console.error('AI duplicate check error:', error);
-      resolve({ has_potential_duplicate: false, similar_reports: [] });
+      resolve(null);
     }
   });
 }
