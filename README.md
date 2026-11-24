@@ -16,6 +16,16 @@ https://github.com/Rediet2077/CIRP
 
 The backend and admin run on a free hosting plan, so the first load after inactivity can take about 50 seconds.
 
+**Admin dashboard logins (demo accounts)**
+
+| Role / Department | Email | Password |
+|---|---|---|
+| Super Admin (all departments) | admin@cirp.com | Test@123 |
+| Public Works | public.works@cirp.com | Test@123 |
+| Water & Sewage | water.sewage@cirp.com | Test@123 |
+| Sanitation | sanitation@cirp.com | Test@123 |
+| Electrical Services | electrical.services@cirp.com | Test@123 |
+
 ## 3. Project Information
 
 **Purpose:** CIRP helps citizens report infrastructure problems in their community and helps municipal authorities assign, track and resolve them, improving communication, accountability and transparency.
